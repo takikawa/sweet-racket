@@ -12,14 +12,25 @@ can use the sweet reader as its own separate language.
 To use sweet expressions, supply a #lang line like the following:
 
 @codeblock|{
-  #lang planet asumu/sweet
+  #lang planet asumu/sweet racket
 
   printf("Hello")
 }|
 
-There are plans to modify the reader language to accept an
-argument module to load so that you can use sweet expressions
-with Racket, Typed Racket, or other languages.
+The third parameter on the #lang line is the base language to
+use sweet expressions with. You can supply any language here
+such as @racket[racket], @racket[typed/racket], or others.
+
+For example:
+
+@codeblock|{
+  #lang planet asumu/sweet typed/racket
+  
+  define: fact([n : Integer]) : Integer
+    if zero?(n)
+       1
+       {n * fact{n - 1}}
+}|
 
 Currently, the reader is limited because it does not read
 Racket extensions to Scheme syntax such as hash literals, but

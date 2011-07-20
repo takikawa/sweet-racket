@@ -153,7 +153,7 @@
   (let* ((read (readblock-clean level port))
            (next-level (car read))
            (block (cdr read)))
-    (if (string=? next-level level)
+    (if (equal? next-level level)
           (let* ((reads (readblocks level port))
                  (next-next-level (car reads))
                  (next-blocks (cdr reads)))
