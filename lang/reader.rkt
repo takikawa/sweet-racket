@@ -1,12 +1,12 @@
 #lang s-exp syntax/module-reader
-racket
-#:read sweet-read
-#:read-syntax sweet-read-syntax
+#:language read
+#:read -read
+#:read-syntax -read-syntax
 
-(require "../sweet.rkt")
+(require (rename-in "../sweet.rkt" [sweet-read -read]))
 
-(define (sweet-read-syntax src in)
-  (define datum (sweet-read in))
+(define (-read-syntax src in)
+  (define datum (-read in))
   (if (eof-object? datum)
       eof
       (datum->syntax #f datum)))

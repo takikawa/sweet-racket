@@ -1,4 +1,4 @@
-#lang reader "../lang/reader.rkt"
+#lang reader "../lang/reader.rkt" racket
 
 {3 + 5}
 '{3 + 5}

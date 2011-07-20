@@ -1,4 +1,4 @@
-#lang reader "../lang/reader.rkt"
+#lang planet asumu/sweet racket
 
 require(rackunit)
 
@@ -17,4 +17,5 @@ define factorial(n)
      1
      {n * factorial{n - 1}} ; f{...} => f({...})
 
+check-equal?(fibfast(9) 34)
 check-equal?(factorial(5) 120)

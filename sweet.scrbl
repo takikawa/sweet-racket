@@ -1,4 +1,6 @@
-#lang scribble/manual
+#lang scribble/doc
+
+@require[scribble/manual]
 
 @title{Sweet: an alternative to s-expressions}
 
@@ -9,11 +11,11 @@ can use the sweet reader as its own separate language.
 
 To use sweet expressions, supply a #lang line like the following:
 
-@codeblock{
+@codeblock|{
   #lang planet asumu/sweet
 
   printf("Hello")
-}
+}|
 
 There are plans to modify the reader language to accept an
 argument module to load so that you can use sweet expressions
