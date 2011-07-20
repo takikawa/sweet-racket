@@ -3,7 +3,7 @@ Sweet expressions for Racket
 
 This is a port of [sweet
 expressions](http://www.dwheeler.com/readable/) by David
-Wheeler for the [Racket](http://www.racket-lang.org)
+Wheeler from Scheme to the [Racket](http://www.racket-lang.org)
 programming language. 
 
 Racket is, in addition to being a normal programming
