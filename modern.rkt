@@ -231,7 +231,7 @@
         (read-char port)
         (list 'quasiquote
           (underlying-read port)))
-      ((char=? c #\`)
+      ((char=? c #\,)
         (read-char port)
           (cond
             ((char=? #\@ (peek-char port))
@@ -240,9 +240,7 @@
                (underlying-read port)))
            (#t 
             (list 'unquote
-              ;(underlying-read input-stream eof-error-p
-              ;              eof-value recursive-p)))))
-              ))))
+              (underlying-read port)))))
       ; The "(" calls modern-read, but since this one shouldn't normally
       ; be used anyway (modern-read will get first crack at it), it
       ; doesn't matter:
