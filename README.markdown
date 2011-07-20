@@ -1,10 +1,9 @@
 Sweet expressions for Racket
 ============================
 
-This is a port of [sweet
-expressions](http://www.dwheeler.com/readable/) by David
-Wheeler from Scheme to the [Racket](http://www.racket-lang.org)
-programming language. 
+This is a port of [sweet expressions](http://www.dwheeler.com/readable/),
+originally written by David Wheeler, from Scheme to the
+[Racket](http://www.racket-lang.org) programming language. 
 
 Racket is, in addition to being a normal programming
 language, is a platform for language design. It provides
