@@ -1,4 +1,4 @@
-#lang racket
+#lang racket/unit
 
 ; modern.scm (Scheme), 2008-01-03
 ;
@@ -58,13 +58,15 @@
 ; ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 ; OTHER DEALINGS IN THE SOFTWARE.
 
+(require "read-sig.rkt")
+
+(import (prefix old- read^))
+(export (rename read^ [modern-read read]))
+
 ; Configuration:
 (define modern-backwards-compatible #f) ; If true, "(" triggers old reader.
 (define modern-bracketaccess #t) ; If true, "f[...]" => [bracketaccess f ...]
                                  ; if not, "f[...]" => [f ...].
-
-; Preserve original read.
-(define old-read read)
 
 ; A few useful utilities:
 
@@ -450,5 +452,3 @@
 	      (eval inp)
 	      (load port)))))
   (load (open-input-file filename)))
-
-(provide modern-read modern-load)

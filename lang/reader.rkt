@@ -3,7 +3,26 @@
 #:read -read
 #:read-syntax -read-syntax
 
-(require (rename-in "../sweet.rkt" [sweet-read -read]))
+(require racket/unit
+         "../read-sig.rkt"
+         "../sweet.rkt")
+
+(define-unit underlying-read@
+  (import)
+  (export (rename read^ [-read read]))
+
+  (define -read read))
+
+(define-values/invoke-unit
+  (compound-unit
+    (import)
+    (export S)
+
+    (link [((R : read^)) underlying-read@]
+          [((S : read^)) sweet@ R]))
+
+  (import)
+  (export (prefix - read^)))
 
 (define (-read-syntax src in)
   (define datum (-read in))

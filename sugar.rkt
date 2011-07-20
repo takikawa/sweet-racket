@@ -1,4 +1,4 @@
-#lang racket
+#lang racket/unit
 
 ; Implementation of a revision of SRFI 49, based on SRFI 49 at:
 ; http://srfi.schemers.org/srfi-49/srfi-49.html
@@ -46,17 +46,16 @@
 ;  ----{ sugar.scm }----
 
 
-;; TODO: parameterize this module so you don't have to use
-;;       sugar with modern
-(require "modern.rkt")
+(require "read-sig.rkt")
+
+(import read^)
+(export (rename read^ [sugar-read read]))
+
+(define sugar-read-save read)
 
 (define group 'group)
 ; TODO: Need to NOT give "group" its special meaning if it doesn't
 ; sart with "g" or "G". This may be tricky to do with this design.
-
-(define sugar-read-save modern-read)
-
-(define sugar-load-save modern-load)
 
 (define (consume-to-eol port)
   ; Consumes chars to end of line, WITHOUT consume the ending newline/EOF
@@ -257,7 +256,6 @@
               (load port)))))
   (load (open-input-file filename)))
 
-(provide sugar-read sugar-load)
 
 ; ----{ sugar.scm }----
 ; Copyright (C) 2005-2008 by Egil Möller and David A. Wheeler.
