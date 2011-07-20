@@ -3,7 +3,7 @@
 @title{Sweet: an alternative to s-expressions}
 
 This manual describes the sweet planet package, which is a port
-of the @hyperlink["http://www.dwheeler.com/readable/"](sweet reader)
+of the @hyperlink["http://www.dwheeler.com/readable/"]{sweet reader}
 created by David Wheeler to Racket. In the port, you
 can use the sweet reader as its own separate language.
 
