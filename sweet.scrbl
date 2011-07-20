@@ -18,7 +18,7 @@ To use sweet expressions, supply a #lang line like the following:
 }|
 
 The third parameter on the #lang line is the base language to
-use sweet expressions with. You can supply any language here
+be used with sweet expressions. You can supply any language here
 such as @racket[racket], @racket[typed/racket], or others.
 
 For example:
