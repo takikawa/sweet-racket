@@ -65,7 +65,7 @@
 
 ; Configuration:
 (define modern-backwards-compatible #f) ; If true, "(" triggers old reader.
-(define modern-bracketaccess #t) ; If true, "f[...]" => [bracketaccess f ...]
+(define modern-bracketaccess #f) ; If true, "f[...]" => [bracketaccess f ...]
                                  ; if not, "f[...]" => [f ...].
 
 ; A few useful utilities:
@@ -88,24 +88,15 @@
 ; Define the tab character; a tab is immediately after the backslash.
 ; Unfortunately, this seems to be the only portable way to define the
 ; tab character in Scheme, so we'll do it once (here) and use it elsewhere.
-(define tab #\	)
-
-(define (my-is-whitespace c)
-  (ismember? c `(#\space #\newline ,tab)))
-; TODO: Possibly support other whitespace chars, e.g.:
-;    #\return
-;   (code-char 10) (code-char 11)     ; LF, VT
-;   (code-char 12) (code-char 13)))))  ; FF, CR
-;   If so, also modify the "delimiters" list above.
-  
+(define tab #\tab)
 
 (define (skip-whitespace port)
   ; Consume whitespace.
+  (define c (peek-char port))
   (cond
-    ((my-is-whitespace (peek-char port))
-      (read-char port)
-      (skip-whitespace port))))
-
+    [(and (char? c) (char-whitespace? c))
+     (read-char port)
+     (skip-whitespace port)]))
 
 ; Unfortunately, since most Scheme readers will consume [, {, }, and ],
 ; we have to re-implement our own Scheme reader.  Ugh.
@@ -116,7 +107,8 @@
 ; We WILL call old-read on string reading (that DOES seem to work
 ; in common cases, and lets us use the implementation's string extensions).
 
-(define modern-delimiters `(#\space #\newline #\( #\) #\[ #\] #\{ #\} ,tab))
+(define modern-delimiters
+  `(#\space #\newline #\return #\( #\) #\[ #\] #\{ #\} ,tab))
 
 (define (read-until-delim port delims)
   ; Read characters until eof or "delims" is seen; do not consume them.
@@ -124,7 +116,8 @@
   (let ((c (peek-char port)))
     (cond
        ((eof-object? c) '())
-       ((ismember? (peek-char port) delims) '())
+       ((ismember? c delims) '())
+       ((char-whitespace? c) '())
        (#t (cons (read-char port) (read-until-delim port delims))))))
 
 (define (read-error message)
@@ -210,7 +203,7 @@
         (old-read port))   ; (guile 1.8 and gauche/gosh 1.8.11 are fine)
       ((ismember? c digits) ; Initial digit.
         (read-number port '()))
-      ((char=? c #\#) (process-sharp port))
+      ((char=? c #\#) (old-read port)) ; Racket's reader handles this
       ((char=? c #\.) (process-period port))
       ((or (char=? c #\+) (char=? c #\-))  ; Initial + or -
         (read-char port)
@@ -383,12 +376,11 @@
   (skip-whitespace port)
   (modern-process-tail port
     (let ((c (peek-char port)))
-      ; (display "modern-read2 peeked at: ")
-      ; (write c)
+      ; (printf "modern-read2 peeked at: ~a ~n" c)
       (cond
         ; We need to directly implement abbreviations ', etc., so that
         ; we retain control over the reading process.
-        ((eof-object? c) c)
+        ((eof-object? c) eof)
         ((char=? c #\')
           (read-char port)
           (list 'quote
@@ -424,10 +416,8 @@
           (skip-line port)
           (modern-read2 port))
         (#t (let ((result (underlying-read port)))
-                ; (display "DEBUG result = ")
-                ; (write result)
-                ; (display "\nDEBUG peek after= ")
-                ; (write (peek-char port))
+                ; (printf "DEBUG result = ~a ~n" result)
+                ; (printf "DEBUG peek after = ~a ~n" (peek-char port))
                 result))))))
 
 

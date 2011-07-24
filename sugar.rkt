@@ -67,11 +67,9 @@
 
 (define (readquote level port qt)
   (let ((char (peek-char port)))
-    (if (or (eqv? char #\space)
-            (eqv? char #\newline)
-            (eqv? char #\tab))
-          (list qt)
-          (list qt (sugar-read-save port)))))
+    (if (char-whitespace? char)
+        (list qt)
+        (list qt (sugar-read-save port)))))
 
 (define (readitem level port)
   (let ((char (peek-char port)))
@@ -101,6 +99,7 @@
 
 (define (accumulate-hspace port)
   (if (or (eqv? (peek-char port) #\space)
+          (eqv? (peek-char port) #\return)
           (eqv? (peek-char port) #\tab))
       (cons (read-char port) (accumulate-hspace port))
       '()))
@@ -178,8 +177,7 @@
           (if (indentation>? next-level level)
               (readblocks next-level port)
               (cons next-level '()))))
-     ((or (eqv? char #\space)
-          (eqv? char #\tab))
+     ((or (char-whitespace? char))
         (read-char port)
         (readblock level port))
      (#t
