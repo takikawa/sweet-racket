@@ -61,6 +61,7 @@
 (require racket/contract
          syntax/parse
          syntax/readerr
+         syntax/stx
          "read-sig.rkt"
          "util.rkt")
 
@@ -208,12 +209,12 @@
 ; Otherwise it returns false.
 ; If passed empty list, returns true (so recursion works correctly).
 (define (even-and-op-prefix op lyst)
-   (cond
-     ((null? lyst) #t)
-     ((not (pair? lyst)) #f) ; Not a list.
-     ((not (eq? op (car lyst))) #f) ; fail - operators not all equal?.
-     ((null? (cdr lyst)) #f) ; fail - odd # of parameters in lyst.
-     (#t (even-and-op-prefix op (cddr lyst))))) ; recurse.
+  (cond
+    [(stx-null? lyst) #t]
+    [(not (stx-pair? lyst)) #f] ; Not a list.
+    [(not (free-identifier=? op (stx-car lyst))) #f] ; fail - operators not all equal?.
+    [(null? (stx-cdr lyst)) #f] ; fail - odd # of parameters in lyst.
+    [#t (even-and-op-prefix op (stx-cdr (stx-cdr lyst)))])) ; recurse.
 
 ; syntax? -> any/c
 ; Return True if the lyst is in simple infix format (and should be converted
@@ -221,8 +222,8 @@
 (define (simple-infix-listp stx)
   (syntax-parse stx
     [(fst snd:id trd rst ...)
-     (even-and-op-prefix (syntax-e #'snd) 
-                         (syntax-e #'(rst ...)))]
+     (even-and-op-prefix #'snd
+                         #'(rst ...))]
     [_ #f]))
 
 ;; Return alternating parameters in a lyst (1st, 3rd, 5th, etc.)
