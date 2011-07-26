@@ -262,7 +262,7 @@
     (define-values (ln col pos) (port-next-location port))
     (cond
       [(eof-object? c)
-       (raise-read-error "EOF in middle of list" #f ln col pos #f)
+       (raise-read-eof-error "EOF in middle of list" #f ln col pos #f)
        c]
       [(char=? c stop-char)
         (read-char port)
