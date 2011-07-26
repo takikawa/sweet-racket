@@ -46,10 +46,13 @@
 ;  ----{ sugar.scm }----
 
 
-(require "read-sig.rkt")
+(require "read-sig.rkt"
+         "util.rkt")
 
 (import read^)
-(export (rename read^ [sugar-read read]))
+(export (rename read^ 
+                [sugar-read read]
+                [sugar-read-syntax read-syntax]))
 
 (define sugar-read-save read)
 
@@ -74,22 +77,21 @@
 (define (readitem level port)
   (let ((char (peek-char port)))
     (cond
-     ((eqv? char #\`)
+     [(eqv? char #\`)
       (read-char port)
-        (readquote level port 'quasiquote))
-     ((eqv? char #\')
+        (readquote level port 'quasiquote)]
+     [(eqv? char #\')
       (read-char port)
-        (readquote level port 'quote))
-     ((eqv? char #\,)
+        (readquote level port 'quote)]
+     [(eqv? char #\,)
       (read-char port)
       (cond
         ((eqv? (peek-char port) #\@)
           (read-char port)
           (readquote level port 'unquote-splicing))
         (#t
-          (readquote level port 'unquote))))
-     (#t
-        (sugar-read-save port)))))
+          (readquote level port 'unquote)))]
+     [else (sugar-read-save port)])))
 
 (define (indentation>? indentation1 indentation2)
   (let ((len1 (string-length indentation1))
@@ -99,7 +101,6 @@
 
 (define (accumulate-hspace port)
   (if (or (eqv? (peek-char port) #\space)
-          (eqv? (peek-char port) #\return)
           (eqv? (peek-char port) #\tab))
       (cons (read-char port) (accumulate-hspace port))
       '()))
@@ -177,19 +178,21 @@
           (if (indentation>? next-level level)
               (readblocks next-level port)
               (cons next-level '()))))
-     ((or (char-whitespace? char))
+     [(or (char-whitespace? char))
         (read-char port)
-        (readblock level port))
-     (#t
-        (let* ((first (readitem level port))
-               (rest (readblock level port))
-               (level (car rest))
-               (block (cdr rest)))
-          (if (eq? first '|.|)
-              (if (pair? block)
-                  (cons level (car block))
-                  rest)
-              (cons level (cons first block))))))))
+        (readblock level port)]
+     (else
+       (let* ((first (readitem level port))
+              (rest (readblock level port))
+              (level (car rest))
+              (block (cdr rest)))
+         (cond [(eq? first '|.|)
+                (if (pair? block)
+                    (cons level (car block))
+                    rest)]
+               [(eof-object? first) (cons level (list first))]
+               [(eof-object? block) (cons level (list first))]
+               [else (cons level (cons first block))]))))))
 
 ;; reads a block and handles group, (quote), (unquote),
 ;; (unquote-splicing) and (quasiquote).
@@ -236,6 +239,10 @@
   (if (null? port)
     (sugar-start-expr (current-input-port))
     (sugar-start-expr (car port))))
+
+(define (sugar-read-syntax source-name port)
+  ;; TODO
+  (void))
 
 
 (define (sugar-filter)
