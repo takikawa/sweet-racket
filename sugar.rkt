@@ -100,8 +100,10 @@
            (string=? indentation2 (substring indentation1 0 len2)))))
 
 (define (accumulate-hspace port)
-  (if (or (eqv? (peek-char port) #\space)
-          (eqv? (peek-char port) #\tab))
+  (define c (peek-char port))
+  (if (and (char? c) 
+           (char-whitespace? c) 
+           (not (eqv? c #\newline)))
       (cons (read-char port) (accumulate-hspace port))
       '()))
 
