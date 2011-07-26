@@ -1,4 +1,4 @@
-#lang planet asumu/sweet racket
+#lang reader "../lang/reader.rkt" racket
 
 require(rackunit)
 
