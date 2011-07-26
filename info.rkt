@@ -7,7 +7,7 @@
     "syntax for s-expression languages."))
 
 (define release-notes
-  '("1 0: Initial port to Racket"))
+  '("1 1: Fix a carriage return bug"))
 
 (define categories
   '(devtools metaprogramming))
