@@ -1,50 +1,17 @@
 #lang racket/unit
 
-; Implementation of a revision of SRFI 49, based on SRFI 49 at:
-; http://srfi.schemers.org/srfi-49/srfi-49.html
-; This provides "Indentation-sensitive syntax" for Scheme.
-; This SRFI descibes a new syntax for Scheme, called I-expressions,
-; with equal descriptive power as S-expressions. The syntax uses
-; indentation to group expressions, and has no special cases for
-;  semantic constructs of the language. It can be used both for
-;  program and data input.
-
-; The following code implements I-expressions as a GNU Guile module
-; that can be loaded using:
-;     (use-modules (sugar))
-; This command will only work if this file's directory is in %load-path; 
-; if the file is not installed anywhere, you can do this with:
-;      (set! %load-path (append %load-path '(".")))
-; You can also use this (esp. for testing):
-;    export GUILE_LOAD_PATH="."
-; but beware; the GUILE_LOAD_PATH has higher precedence, so while this
-; is useful for testing, setting GUILE_LOAD_PATH to include "." can have
-; security problems if used in "real" programs.
-
-; CHANGES:
-; * 2008-01-08 David A. Wheeler <dwheeler at dwheeler dot com>
-;   - Fixed comment processing.  Inline comments now (correctly) ignored;
-;     all comment-only lines are completely skipped with indentation ignored.
-;   - At the start of a new expression, whitespace-only lines are ignored.
-;   - After the first line of a new expression, no-character lines and
-;     horizontal-whitespace-only lines end the expression.
-;   - Added support for unquote-splicing (,@).
-;   - Fix sugar-filter - it should have called write, not display.
-;   - Changed formatting to cuddle on left-hand-side, space-only, so that
-;     it clearly is formatted in a way similar to what it reads
-; * 2007-10-15 David A. Wheeler <dwheeler at dwheeler dot com>
-;   - Changed "t" to "#t" (t is Common Lisp, #t is Scheme)
-;   - Added sugar-filter.
-; * 2006-06-10 David A. Wheeler <dwheeler at dwheeler dot com>
-;   - Changed eq? to eqv? when comparing characters.
-;     The "eq?" operator is not guaranteed to work
-;     for comparing characters, or in comparing with end-of-file,
-;     in the R5RS specification.
-;   - sugar-load now calls sugar-read, not read;
-;     that way, even if sugar has not been enabled, sugar-load will
-;     correctly use sugar-read to read the contents.
-;  ----{ sugar.scm }----
-
+;; Port of the original Guile code to Racket
+;;
+;; Implementation of a revision of SRFI 49, based on SRFI 49 at:
+;; http://srfi.schemers.org/srfi-49/srfi-49.html
+;; This provides "Indentation-sensitive syntax" for Scheme.
+;; This SRFI descibes a new syntax for Scheme, called I-expressions,
+;; with equal descriptive power as S-expressions. The syntax uses
+;; indentation to group expressions, and has no special cases for
+;;  semantic constructs of the language. It can be used both for
+;;  program and data input.
+;;
+;; The following code implements I-expressions.
 
 (require "read-sig.rkt"
          "util.rkt")
