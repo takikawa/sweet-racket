@@ -242,8 +242,7 @@
      #`(snd #,@(alternating-parameters #'(fst snd rst ...)))]))
 
 (define (process-curly stx)
-  (define-values (ln col pos) (port-next-location (current-input-port)))
-  (define nfx (make-stx 'nfx ln col pos 0))
+  (define nfx (datum->syntax stx 'nfx stx))
   (if (simple-infix-listp stx)
       (transform-simple-infix stx)  ; Simple infix expression.
       (syntax-cons nfx stx)))       ; Non-simple; prepend "nfx" to the list.
@@ -272,7 +271,19 @@
        c]
       [else
         (define datum (modern-read2 port))
-        (read-accum (append subs (list datum)))]))
+        (cond [(eq? datum '|.|) (read-dot-extension)]
+              [else (read-accum (append subs (list datum)))])]))
+
+  ;; read-dot-extension : -> syntax?
+  (define (read-dot-extension)
+    (define datum2 (modern-read2 port))
+    (define-values (ln col pos) (port-next-location port))
+    (skip-whitespace port)
+    (cond [(not (eqv? (peek-char port) stop-char))
+           (raise-read-error "Bad closing character after . datum"
+                             #f ln col pos #f)]
+          [else (read-char port)
+                datum2]))
 
   (read-accum '()))
 
@@ -345,10 +356,10 @@
        (cond [(char=? #\@ (peek-char port))
               (read-char port)
               (define u (make-stx 'unquote-splicing ln col pos 0))
-              (syntax-cons u (modern-read2 port))]
+              (syntax-list u (modern-read2 port))]
              [else
               (define u (make-stx 'unquote ln col pos 0))
-              (syntax-cons u (modern-read2 port))])]
+              (syntax-list u (modern-read2 port))])]
       [(char=? c #\( ) ; )
         (if modern-backwards-compatible
           (underlying-read port)
