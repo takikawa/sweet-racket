@@ -8,4 +8,7 @@
          "tests/typed.rkt"
          "tests/typed2.rkt"
          "tests/whitespace.rkt"
-         "tests/335.rkt")
+         "tests/335.rkt"
+         "tests/sweet-test-run.rkt")
+
+(sweet-test "tests/sweet-testsuite")
