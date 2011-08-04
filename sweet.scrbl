@@ -25,13 +25,23 @@ For example:
 
 @codeblock|{
   #lang planet asumu/sweet typed/racket
-  
+
   define: fact([n : Integer]) : Integer
     if zero?(n)
        1
        {n * fact{n - 1}}
 }|
 
-Currently, the reader is limited because it does not read
-Racket extensions to Scheme syntax such as hash literals, but
-these limitations may be removed in future versions.
+Or alternatively:
+
+@codeblock|{
+  #lang planet asumu/sweet lazy
+
+  define fibs
+    cons 0 cons(1 map(+ fibs cdr(fibs)))
+
+  displayln list-ref(fibs 8)
+}|
+
+Known issues: quasiquotation combined with grouping behaves differently from
+the original specification.
