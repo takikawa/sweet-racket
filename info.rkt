@@ -2,12 +2,12 @@
 
 (define name "Sweet")
 
-(define blurb 
+(define blurb
   '("A port of the sweet reader that provides an alternative "
     "syntax for s-expression languages."))
 
 (define release-notes
-  '("1 1: Fix a carriage return bug"))
+  '("1 2: Close issue #335"))
 
 (define categories
   '(devtools metaprogramming))
