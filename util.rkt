@@ -4,10 +4,15 @@
 
 (define current-source-name (make-parameter #f))
 
+;; A syntax object that has the "original?" property
+;; (borrowed from the scribble reader)
+(define orig-stx (read-syntax #f (open-input-string "dummy")))
+
 ;; utility for construction syntaxes
 (define (make-stx v ln col pos span)
   (datum->syntax #f v 
-    (list (current-source-name) ln col pos span)))
+    (vector (current-source-name) ln col pos span)
+    orig-stx))
 
 ;; syntax-cons : syntax? syntax? -> syntax?
 ;; take a syntax object and a syntax object that, when unwrapped, is
@@ -24,7 +29,8 @@
   (datum->syntax 
     #f
     (cons stx1 (syntax-e stx2))
-    (list src line col start span)))
+    (list src line col start span)
+    orig-stx))
 
 ;; syntax-list : syntax? syntax? -> syntax?
 ;; take two syntax objects and put them in a syntax list
@@ -39,4 +45,5 @@
   (datum->syntax 
     #f
     (list stx1 (syntax-e stx2))
-    (list src line col pos span)))
+    (list src line col pos span)
+    orig-stx))

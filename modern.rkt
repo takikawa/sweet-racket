@@ -265,7 +265,7 @@
        c]
       [(char=? c stop-char)
         (read-char port)
-        (datum->syntax #f subs (list #f ln col start (- pos start)))] ;(
+        (datum->syntax #f subs (list #f ln col start (- pos start)) orig-stx)] ;(
       [(ismember? c '(#\) #\] #\}))
        (raise-read-error "Bad closing character" #f ln col pos #f)
        c]

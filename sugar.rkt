@@ -38,8 +38,8 @@
 ;; read a quote item
 (define (readquote level qt)
   (define char (peek-char))
-  (cond [(char-whitespace? char) (datum->syntax #f qt)]
-        [else (datum->syntax #f (list qt (syntax-e (sugar-read-save))))]))
+  (cond [(char-whitespace? char) (datum->syntax #f qt #f orig-stx)]
+        [else (datum->syntax #f (list qt (syntax-e (sugar-read-save))) #f orig-stx)]))
 
 ;; string? -> stx?
 ;; read in a single datum
@@ -102,7 +102,6 @@
   (syntax-parse stx
     [((~literal group) e ...) #'(e ...)]
     [(() e ...) #'(e ...)]
-    ;; TODO: quote/quasiquote/etc. case
     [((q:quote-like) e e1 ...)
      #'(q e e1 ...)]
     [((e ...) e1 ...)
@@ -134,7 +133,7 @@
 
   (match (helper level)
     [(cons lvl lst)
-     (cons lvl (datum->syntax #f lst))]))
+     (cons lvl (datum->syntax #f lst #f orig-stx))]))
 
 ;; Read one block of input
 (define (readblock level)
@@ -167,7 +166,9 @@
                  rest)]
             [(eof-object? first) (cons new-level first)]
             [(eof-object? stx) (cons new-level first)]
-            [else (cons new-level (datum->syntax stx (cons first block)))])]))
+            [else (cons new-level
+                        (datum->syntax stx (cons first block)
+                          #f orig-stx))])]))
 
 ;; string? -> (string? . (U '|.| syntax?))
 ;; reads a block and handles group, (quote), (unquote),
