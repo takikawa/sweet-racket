@@ -1,7 +1,7 @@
 #lang s-exp syntax/module-reader
 #:language read
-#:read *read
-#:read-syntax read-syntax0
+#:read sweet-read
+#:read-syntax sweet-read-syntax
 
 (require racket/unit
          "../read-sig.rkt"
@@ -24,11 +24,4 @@
           [((S : read^)) sweet@ R]))
 
   (import)
-  (export (prefix * read^)))
-
-(define (read-syntax0 src in)
-  (define datum (*read in))
-  ;(printf "~a ~n" datum)
-  (if (eof-object? datum)
-      eof
-      (datum->syntax #f datum)))
+  (export (prefix sweet- read^)))

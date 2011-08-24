@@ -13,205 +13,224 @@
 ;;
 ;; The following code implements I-expressions.
 
-(require "read-sig.rkt"
+(require racket/match
+         syntax/parse
+         "read-sig.rkt"
          "util.rkt")
 
 (import read^)
-(export (rename read^ 
+(export (rename read^
                 [sugar-read read]
                 [sugar-read-syntax read-syntax]))
 
-(define sugar-read-save read)
+(define sugar-read-save read-syntax)
 
-(define group 'group)
-; TODO: Need to NOT give "group" its special meaning if it doesn't
-; sart with "g" or "G". This may be tricky to do with this design.
+;; -> void?
+;; Consumes chars to end of line, WITHOUT consume the ending newline/EOF
+(define (consume-to-eol)
+  (define c (peek-char))
+  (cond [(eof-object? c) c]
+        [(char=? c #\newline) c]
+        [else (read-char)
+              (consume-to-eol)]))
 
-(define (consume-to-eol port)
-  ; Consumes chars to end of line, WITHOUT consume the ending newline/EOF
-  (let ((c (peek-char port)))
-    (cond
-      ((eof-object? c) c)
-      ((char=? c #\newline) c)
-      (#t (read-char port) (consume-to-eol port)))))
+;; string? symbol? -> stx?
+;; read a quote item
+(define (readquote level qt)
+  (define char (peek-char))
+  (cond [(char-whitespace? char) (datum->syntax #f qt)]
+        [else (datum->syntax #f (list qt (syntax-e (sugar-read-save))))]))
 
-(define (readquote level port qt)
-  (let ((char (peek-char port)))
-    (if (char-whitespace? char)
-        (list qt)
-        (list qt (sugar-read-save port)))))
-
-(define (readitem level port)
-  (let ((char (peek-char port)))
-    (cond
-     [(eqv? char #\`)
-      (read-char port)
-        (readquote level port 'quasiquote)]
-     [(eqv? char #\')
-      (read-char port)
-        (readquote level port 'quote)]
-     [(eqv? char #\,)
-      (read-char port)
-      (cond
-        ((eqv? (peek-char port) #\@)
-          (read-char port)
-          (readquote level port 'unquote-splicing))
-        (#t
-          (readquote level port 'unquote)))]
-     [else (sugar-read-save port)])))
+;; string? -> stx?
+;; read in a single datum
+(define (readitem level)
+  (define char (peek-char))
+  (cond [(eqv? char #\`)
+         (read-char)
+         (readquote level 'quasiquote)]
+        [(eqv? char #\')
+         (read-char)
+         (readquote level 'quote)]
+        [(eqv? char #\,)
+         (read-char)
+         (cond
+           [(eqv? (peek-char) #\@)
+            (read-char)
+            (readquote level 'unquote-splicing)]
+           [else (readquote level 'unquote)])]
+     [else (sugar-read-save)]))
 
 (define (indentation>? indentation1 indentation2)
-  (let ((len1 (string-length indentation1))
-          (len2 (string-length indentation2)))
+  (let ([len1 (string-length indentation1)]
+        [len2 (string-length indentation2)])
     (and (> len1 len2)
-           (string=? indentation2 (substring indentation1 0 len2)))))
+         (string=? indentation2 (substring indentation1 0 len2)))))
 
-(define (accumulate-hspace port)
-  (define c (peek-char port))
-  (if (and (char? c) 
-           (char-whitespace? c) 
-           (not (eqv? c #\newline)))
-      (cons (read-char port) (accumulate-hspace port))
-      '()))
+;; -> listof char?
+(define (accumulate-hspace)
+  (define c (peek-char))
+  (cond [(and (char? c)
+              (char-whitespace? c)
+              (not (eqv? c #\newline)))
+         (cons (read-char)
+               (accumulate-hspace))]
+        [else '()]))
 
-(define (indentationlevel port)
-  (let ((indent (accumulate-hspace port)))
-    (cond
-      ((eqv? (peek-char port) #\;)
-        (consume-to-eol port) ; ALWAYS ignore comment-only lines.
-        (when (eqv? (peek-char port) #\newline) (read-char port))
-        (indentationlevel port))
-      ; If ONLY whitespace on line, treat as "", because there's no way
-      ; to (visually) tell the difference (preventing hard-to-find errors):
-      ((eof-object? (peek-char port)) "")
-      ((eqv? (peek-char port) #\newline) "")
-      (#t (list->string indent)))))
+;; -> string?
+;; read the indentation of the next line
+(define (indentationlevel)
+  (define indent (accumulate-hspace))
+  (cond [(eqv? (peek-char) #\;)
+         (consume-to-eol) ; ALWAYS ignore comment-only lines.
+         (when (eqv? (peek-char) #\newline) (read-char))
+         (indentationlevel)]
+        ; If ONLY whitespace on line, treat as "", because there's no way
+        ; to (visually) tell the difference (preventing hard-to-find errors):
+        [(eof-object? (peek-char)) ""]
+        [(eqv? (peek-char) #\newline) ""]
+        [else (list->string indent)]))
 
-(define (clean line)
-  (cond
-   ((not (pair? line))
-    line)
-   ((null? line)
-    line)
-   ((eq? (car line) 'group)
-    (cdr line))
-   ((null? (car line))
-    (cdr line))
-   ((list? (car line))
-    (if (or (equal? (car line) '(quote))
-              (equal? (car line) '(quasiquote))
-              (equal? (car line) '(unquote-splicing))
-              (equal? (car line) '(unquote)))
-          (if (and (list? (cdr line))
-                   (= (length (cdr line)) 1))
-              (cons
-               (car (car line))
-               (cdr line))
-              (list
-               (car (car line))
-               (cdr line)))
-          (cons
-           (clean (car line))
-           (cdr line))))
-   (#t
-    line)))
+;; stx? -> stx?
+;; clean up the block if necessary
+(define (clean stx)
+  (define-syntax-class quote-like
+    (pattern (~or (~literal quote)
+                  (~literal quasiquote)
+                  (~literal unquote-splicing)
+                  (~literal unquote))))
 
+  (syntax-parse stx
+    [((~literal group) e ...) #'(e ...)]
+    [(() e ...) #'(e ...)]
+    ;; TODO: quote/quasiquote/etc. case
+    [((q:quote-like) e e1 ...)
+     #'(q e e1 ...)]
+    [((e ...) e1 ...)
+     #`(#,(clean #'(e ...)) e1 ...)]
+    [(e ...) #'(e ...)]
+    [e #'e]
+    [() #'()]))
+
+;; indent -> syntax?
 ;; Reads all subblocks of a block
-(define (readblocks level port)
-  (let* ((read (readblock-clean level port))
-           (next-level (car read))
-           (block (cdr read)))
-    (if (equal? next-level level)
-          (let* ((reads (readblocks level port))
-                 (next-next-level (car reads))
-                 (next-blocks (cdr reads)))
-            (if (eq? block '|.|)
+(define (readblocks level)
+
+  ;; indent -> (listof syntax?)
+  (define (helper level)
+    (define read (readblock-clean level))
+    (define next-level (car read))
+    (define stx (cdr read))
+    (define block (syntax->list stx))
+    (cond [(equal? next-level level)
+            (define reads (helper level))
+            (define next-next-level (car reads))
+            (define next-blocks (cdr reads))
+            (if (eq? (syntax-e stx) '|.|)
                 (if (pair? next-blocks)
                     (cons next-next-level (car next-blocks))
                     (cons next-next-level next-blocks))
-                (cons next-next-level (cons block next-blocks))))
-          (cons next-level (list block)))))
+                (cons next-next-level (cons stx next-blocks)))]
+          [else (cons next-level (list stx))]))
+
+  (match (helper level)
+    [(cons lvl lst)
+     (cons lvl (datum->syntax #f lst))]))
 
 ;; Read one block of input
-(define (readblock level port)
-  (let ((char (peek-char port)))
-    (cond
-     ((eof-object? char)
-        (cons -1 char))
-     ((eqv? char #\;)
-        (consume-to-eol port)
-        (readblock level port))
-     ((eqv? char #\newline)
-        (read-char port)
-        (let ((next-level (indentationlevel port)))
-          (if (indentation>? next-level level)
-              (readblocks next-level port)
-              (cons next-level '()))))
-     [(or (char-whitespace? char))
-        (read-char port)
-        (readblock level port)]
-     (else
-       (let* ((first (readitem level port))
-              (rest (readblock level port))
-              (level (car rest))
-              (block (cdr rest)))
-         (cond [(eq? first '|.|)
-                (if (pair? block)
-                    (cons level (car block))
-                    rest)]
-               [(eof-object? first) (cons level (list first))]
-               [(eof-object? block) (cons level (list first))]
-               [else (cons level (cons first block))]))))))
+(define (readblock level)
+  (define char (peek-char))
+  (cond
+    [(eof-object? char)
+      (cons -1 char)]
+    [(eqv? char #\;)
+      (consume-to-eol)
+      (readblock level)]
+    [(eqv? char #\newline)
+      (read-char)
+      (define next-level (indentationlevel))
+      (if (indentation>? next-level level)
+          (readblocks next-level)
+          (cons next-level (datum->syntax #f '())))]
+    [(char-whitespace? char)
+      (read-char)
+      (readblock level)]
+    [else
+      (define first (readitem level))
+      (define rest  (readblock level))
+      (define new-level (car rest))
+      (define stx (cdr rest))
+      (define block (and (not (eof-object? stx))
+                         (syntax->list stx)))
+      (cond [(eq? (syntax-e first) '|.|)
+             (if (pair? block)
+                 (cons new-level (car block))
+                 rest)]
+            [(eof-object? first) (cons new-level first)]
+            [(eof-object? stx) (cons new-level first)]
+            [else (cons new-level (datum->syntax stx (cons first block)))])]))
 
+;; string? -> (string? . (U '|.| syntax?))
 ;; reads a block and handles group, (quote), (unquote),
 ;; (unquote-splicing) and (quasiquote).
-(define (readblock-clean level port)
-  (let* ((read (readblock level port))
-           (next-level (car read))
-           (block (cdr read)))
-    (if (or (not (list? block)) (> (length block) 1))
-          (cons next-level (clean block))
-          (if (= (length block) 1)
-              (cons next-level (car block))
-              (cons next-level '|.|)))))
+(define (readblock-clean level)
+  (define read (readblock level))
+  (define next-level (car read))
+  (define stx (cdr read))
+  (define block (and (not (eof-object? stx))
+                          (syntax->list stx)))
+  (cond [(or (not block) (> (length block) 1))
+         (cons next-level (clean stx))]
+        [(= (length block) 1)
+         (cons next-level (car block))]
+        [else
+         (cons next-level (datum->syntax stx '|.|))]))
 
+;; Read single complete I-expression.
+(define (sugar-start-expr)
+  (define indentation (list->string (accumulate-hspace)))
+  (define c (peek-char))
+  (cond
+    [(eof-object? c) c] ; EOF - return it, we're done.
+    [(char-comment? c) => (λ (x) (read-comment))]
+    [(eqv? c #\newline)
+      (read-char)              ; Newline (with no preceding comment).
+      (sugar-start-expr)]      ; Consume and again
+    [else
+     ; TODO: Handle  (> (string-length indentation) 0)
+     (define read (readblock-clean ""))
+     (define level (car read))
+     (define stx (cdr read))
+     (define block (syntax-e stx))
+     (cond
+       [(eq? block '|.|) (datum->syntax stx '())]
+       [else stx])]))
 
-(define (sugar-start-expr port)
-  ; Read single complete I-expression.
-  (let* ((indentation (list->string (accumulate-hspace port)))
-         (c (peek-char port)))
-    (cond
-      ((eof-object? c) c) ; EOF - return it, we're done.
-      ((eqv? c #\; )    ; comment - consume and see what's after it.
-        (let ((d (consume-to-eol port)))
-          (cond
-            ((eof-object? d) d) ; If EOF after comment, return it.
-            (#t  
-              (read-char port) ; Newline after comment.  Consume NL
-              (sugar-start-expr port))))) ; and try again
-      ((eqv? c #\newline)
-        (read-char port) ; Newline (with no preceding comment).
-        (sugar-start-expr port)) ; Consume and again
-      (#t
-        ; TODO: Handle  (> (string-length indentation) 0)
-        (let* ((read (readblock-clean "" port))
-               (level (car read))
-               (block (cdr read)))
-          (cond
-           ((eq? block '|.|)
-              '())
-           (#t
-              block)))))))
+;; predicate for comment characters
+(define (char-comment? c) (eqv? c #\;))
 
+;; read a commented line
+(define (read-comment)
+  (define d (consume-to-eol))
+  (cond
+    [(eof-object? d) d]         ; If EOF after comment, return it.
+    [else
+     (read-char)                ; Newline after comment.  Consume NL
+     (sugar-start-expr)])) ; and try again
 
-(define (sugar-read . port)
-  (if (null? port)
-    (sugar-start-expr (current-input-port))
-    (sugar-start-expr (car port))))
+;; read and read-syntax functions
+(define (sugar-read [port (current-input-port)])
+  (define stx (sugar-read-syntax #f port))
+  (if (eof-object? stx)
+      eof
+      (syntax->datum stx)))
 
-(define (sugar-read-syntax source-name port)
-  ;; TODO
-  (void))
+(define (sugar-read-syntax [source-name #f]
+                           [port (current-input-port)])
+  (when (not source-name)
+    (set! source-name (object-name port)))
+  (parameterize ([current-source-name source-name]
+                 [current-input-port port])
+    (sugar-start-expr)))
 
 
 (define (sugar-filter)

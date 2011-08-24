@@ -10,10 +10,10 @@
          "modern.rkt")
 
 (provide sweet@)
-  
+
 (define-compound-unit sweet@
   (import (R : read^))
   (export S)
-  
+
   (link [((M : read^)) modern@ R]
         [((S : read^)) sugar@ M]))
