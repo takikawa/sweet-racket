@@ -100,15 +100,17 @@
                   (~literal unquote))))
 
   (syntax-parse stx
-    [((~literal group) e ...) #'(e ...)]
-    [(() e ...) #'(e ...)]
+    [((~literal group) e ...)
+     (syntax/loc stx (e ...))]
+    [(() e ...)
+     (syntax/loc stx (e ...))]
     [((q:quote-like) e e1 ...)
-     #'(q e e1 ...)]
+     (syntax/loc stx (q e e1 ...))]
     [((e ...) e1 ...)
-     #`(#,(clean #'(e ...)) e1 ...)]
-    [(e ...) #'(e ...)]
-    [e #'e]
-    [() #'()]))
+     (quasisyntax/loc stx (#,(clean (syntax/loc stx (e ...))) e1 ...))]
+    [(e ...) (syntax/loc stx (e ...))]
+    [e (syntax/loc stx e)]
+    [() (syntax/loc stx ())]))
 
 ;; indent -> syntax?
 ;; Reads all subblocks of a block
