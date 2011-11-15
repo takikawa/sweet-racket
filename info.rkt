@@ -7,7 +7,7 @@
     "syntax for s-expression languages."))
 
 (define release-notes
-  '("1 2: Close issue #335"))
+  '("1 3: Close issue 334. Check syntax works via button."))
 
 (define categories
   '(devtools metaprogramming))
