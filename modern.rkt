@@ -229,17 +229,19 @@
 ;; Return alternating parameters in a lyst (1st, 3rd, 5th, etc.)
 (define (alternating-parameters stx)
   (syntax-parse stx
-    [() #'()]
-    [(e) #'(e)]
+    [() (syntax/loc stx ())]
+    [(e) (syntax/loc stx (e))]
     [(fst snd rst ...)
-     #`(fst #,@(alternating-parameters #'(rst ...)))]))
+     (quasisyntax/loc stx
+       (fst #,@(alternating-parameters (syntax/loc stx (rst ...)))))]))
 
 ;; Transform a simple infix list - move the 2nd parameter into first position,
 ;; followed by all the odd parameters.  Thus (3 + 4 + 5) => (+ 3 4 5).
 (define (transform-simple-infix stx)
   (syntax-parse stx
     [(fst snd rst ...)
-     #`(snd #,@(alternating-parameters #'(fst snd rst ...)))]))
+     (quasisyntax/loc stx
+       (snd #,@(alternating-parameters (syntax/loc stx (fst snd rst ...)))))]))
 
 (define (process-curly stx)
   (define nfx (datum->syntax stx 'nfx stx))
