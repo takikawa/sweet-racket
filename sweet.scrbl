@@ -3,6 +3,7 @@
 @require[scribble/manual]
 
 @title{Sweet: an alternative to s-expressions}
+@author[(author+email "Asumu Takikawa" "asumu@racket-lang.org")]
 
 This manual describes the sweet planet package, which is a port
 of the @hyperlink["http://www.dwheeler.com/readable/"]{sweet reader}
