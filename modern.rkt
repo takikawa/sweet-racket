@@ -169,7 +169,7 @@
       ((char=? c #\")      ; old readers tend to handle strings okay, call it.
         (old-read-syntax (current-source-name) port))
       ((ismember? c digits) ; Initial digit.
-        (read-number port '()))
+        (old-read-syntax (current-source-name) port))
       ((char=? c #\#)
        (old-read-syntax (current-source-name) port)) ; Racket's reader handles this
       ((char=? c #\.) (process-period port))
