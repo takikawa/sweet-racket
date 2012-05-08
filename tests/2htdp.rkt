@@ -1,3 +1,3 @@
-#lang planet asumu/sweet racket
+#lang reader (submod "../main.rkt" reader) racket
 
 symbol? '2htdp/image

@@ -1,4 +1,4 @@
-#lang reader "../lang/reader.rkt" racket
+#lang reader (submod "../main.rkt" reader) racket
 
 ;; test with random strange whitespace thrown in
                          
