@@ -1,31 +1,36 @@
 #lang scribble/doc
 
-@require[scribble/manual]
+@(require scribble/manual (for-label sweet))
 
 @title{Sweet: an alternative to s-expressions}
 @author[(author+email "Asumu Takikawa" "asumu@racket-lang.org")]
 
-This manual describes the sweet planet package, which is a port
-of the @hyperlink["http://www.dwheeler.com/readable/"]{sweet reader}
-created by David Wheeler to Racket. In the port, you
-can use the sweet reader as its own separate language.
+This manual describes the sweet package, a Racket port of the
+@hyperlink["http://www.dwheeler.com/readable/"]{sweet reader}
+by David Wheeler. This packages provides the sweet
+reader as a language mixin.
 
-To use sweet expressions, supply a #lang line like the following:
+@defmodulelang[sweet]
+
+To use sweet expressions, supply a @racketfont{#lang}
+line like the following:
 
 @codeblock|{
-  #lang planet asumu/sweet racket
+  #lang sweet racket
 
   printf("Hello")
 }|
 
-The third parameter on the #lang line is the base language to
-be used with sweet expressions. You can supply any language here
+The third parameter on the @racketfont{#lang} line is the base language
+used by the language mixin. The resulting language will use
+the bindings from the base language, but support sweet
+expression syntax. You can provide any language here
 such as @racket[racket], @racket[typed/racket], or others.
 
 For example:
 
 @codeblock|{
-  #lang planet asumu/sweet typed/racket
+  #lang sweet typed/racket
 
   define: fact([n : Integer]) : Integer
     if zero?(n)
@@ -36,7 +41,7 @@ For example:
 Or alternatively:
 
 @codeblock|{
-  #lang planet asumu/sweet lazy
+  #lang sweet lazy
 
   define fibs
     cons 0 cons(1 map(+ fibs cdr(fibs)))
@@ -44,5 +49,5 @@ Or alternatively:
   displayln list-ref(fibs 8)
 }|
 
-Known issues: quasiquotation combined with grouping behaves differently from
-the original specification.
+Known issues: quasi-quotation combined with grouping does not
+behave according to the specification.
