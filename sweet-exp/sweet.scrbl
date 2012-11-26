@@ -1,6 +1,7 @@
 #lang scribble/doc
 
-@(require scribble/manual (for-label sweet))
+@(require scribble/manual
+          (for-label racket/base sweet-exp))
 
 @title{Sweet: an alternative to s-expressions}
 @author[(author+email "Asumu Takikawa" "asumu@racket-lang.org")]
@@ -8,15 +9,16 @@
 This manual describes the sweet package, a Racket port of the
 @hyperlink["http://www.dwheeler.com/readable/"]{sweet reader}
 by David Wheeler. This packages provides the sweet
-reader as a language mixin.
+reader as a language mixin, similar to the @racketmodname[at-exp]
+or @racketmodname[s-exp] modules.
 
-@defmodulelang[sweet]
+@defmodulelang[sweet-exp]
 
 To use sweet expressions, supply a @racketfont{#lang}
 line like the following:
 
 @codeblock|{
-  #lang sweet racket
+  #lang sweet-exp racket
 
   printf("Hello")
 }|
@@ -30,7 +32,7 @@ such as @racket[racket], @racket[typed/racket], or others.
 For example:
 
 @codeblock|{
-  #lang sweet typed/racket
+  #lang sweet-exp typed/racket
 
   define: fact([n : Integer]) : Integer
     if zero?(n)
@@ -41,7 +43,7 @@ For example:
 Or alternatively:
 
 @codeblock|{
-  #lang sweet lazy
+  #lang sweet-exp lazy
 
   define fibs
     cons 0 cons(1 map(+ fibs cdr(fibs)))
