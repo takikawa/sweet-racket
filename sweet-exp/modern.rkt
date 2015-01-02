@@ -294,7 +294,7 @@
 ;; This recurses, to handle formats like f(x)(y).
 ;; This implements prefixed (), [], and {}
 (define (modern-process-tail port stx)
-  (define prefix (syntax-e stx))
+  (define prefix (if (syntax? stx) (syntax-e stx) stx))
   (define c (peek-char port))
   (cond [(not (or (symbol? prefix) (pair? prefix)))
          stx]  ; Prefixes MUST be symbol or cons; return original value.
