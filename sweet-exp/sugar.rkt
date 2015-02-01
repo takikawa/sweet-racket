@@ -15,6 +15,7 @@
 
 (require racket/match
          syntax/parse
+         syntax/stx
          "read-sig.rkt"
          "util.rkt")
 
@@ -101,16 +102,16 @@
 
   (syntax-parse stx
     [((~literal group) e ...)
-     (syntax/loc stx (e ...))]
+     (datum->syntax stx (stx-cdr stx) stx)]
     [(() e ...)
-     (syntax/loc stx (e ...))]
+     (datum->syntax stx (stx-cdr stx) stx)]
     [((q:quote-like) e e1 ...)
-     (syntax/loc stx (q e e1 ...))]
+     (datum->syntax stx (cons #'q (stx-cdr stx)) stx)]
     [((e ...) e1 ...)
-     (quasisyntax/loc stx (#,(clean (syntax/loc stx (e ...))) e1 ...))]
-    [(e ...) (syntax/loc stx (e ...))]
-    [e (syntax/loc stx e)]
-    [() (syntax/loc stx ())]))
+     (datum->syntax stx (cons (clean (stx-car stx)) (stx-cdr stx)) stx)]
+    [(e ...) stx]
+    [e stx]
+    [() stx]))
 
 ;; indent -> syntax?
 ;; Reads all subblocks of a block
