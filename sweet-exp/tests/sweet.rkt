@@ -18,3 +18,7 @@ let
     x 5
     y 7
   {x + y}
+
+begin-for-syntax
+  define x 3
+  add1 x

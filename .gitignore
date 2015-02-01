@@ -1,5 +1,5 @@
 *.swp
-*.un~
+*~
 *.html
 *.css
 *.js
