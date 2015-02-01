@@ -35,12 +35,15 @@
         [else (read-char)
               (consume-to-eol)]))
 
+(define (maybe-syntax-e stx)
+  (if (syntax? stx) (syntax-e stx) stx))
+
 ;; string? symbol? -> stx?
 ;; read a quote item
 (define (readquote level qt)
   (define char (peek-char))
   (cond [(char-whitespace? char) (datum->syntax #f qt #f orig-stx)]
-        [else (datum->syntax #f (list qt (syntax-e (sugar-read-save))) #f orig-stx)]))
+        [else (datum->syntax #f (list qt (maybe-syntax-e (sugar-read-save))) #f orig-stx)]))
 
 ;; string? -> stx?
 ;; read in a single datum
@@ -127,7 +130,7 @@
             (define reads (helper level))
             (define next-next-level (car reads))
             (define next-blocks (cdr reads))
-            (if (eq? (syntax-e stx) '|.|)
+            (if (eq? (maybe-syntax-e stx) '|.|)
                 (if (pair? next-blocks)
                     (cons next-next-level (car next-blocks))
                     (cons next-next-level next-blocks))
@@ -163,7 +166,7 @@
       (define stx (cdr rest))
       (define block (and (not (eof-object? stx))
                          (syntax->list stx)))
-      (cond [(eq? (syntax-e first) '|.|)
+      (cond [(eq? (maybe-syntax-e first) '|.|)
              (if (pair? block)
                  (cons new-level (car block))
                  rest)]
@@ -204,7 +207,7 @@
      (define read (readblock-clean ""))
      (define level (car read))
      (define stx (cdr read))
-     (define block (syntax-e stx))
+     (define block (maybe-syntax-e stx))
      (cond
        [(eq? block '|.|) (datum->syntax stx '())]
        [else stx])]))
