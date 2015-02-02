@@ -24,6 +24,8 @@
                 [sugar-read read]
                 [sugar-read-syntax read-syntax]))
 
+(define treat-keywords-specially? #t)
+
 (define sugar-read-save read-syntax)
 
 ;; -> void?
@@ -162,20 +164,24 @@
     [else
       (define-values (ln col pos) (port-next-location (current-input-port)))
       (define first (readitem level))
-      (define rest  (readblock level))
-      (define end-pos (port-pos (current-input-port)))
-      (define new-level (car rest))
-      (define stx (cdr rest))
-      (define block (and (not (eof-object? stx))
-                         (syntax->list stx)))
-      (cond [(eq? (maybe-syntax-e first) '|.|)
-             (if (pair? block)
-                 (cons new-level (car block))
-                 rest)]
-            [(eof-object? first) (cons new-level first)]
-            [(eof-object? stx) (cons new-level first)]
-            [else (cons new-level
-                        (make-stx (cons first block) ln col pos (- end-pos pos)))])]))
+      (cond
+        [(and treat-keywords-specially? (keyword? (maybe-syntax-e first)))
+         (cons level first)]
+        [else
+         (define rest  (readblock level))
+         (define end-pos (port-pos (current-input-port)))
+         (define new-level (car rest))
+         (define stx (cdr rest))
+         (define block (and (not (eof-object? stx))
+                            (syntax->list stx)))
+         (cond [(eq? (maybe-syntax-e first) '|.|)
+                (if (pair? block)
+                    (cons new-level (car block))
+                    rest)]
+               [(eof-object? first) (cons new-level first)]
+               [(eof-object? stx) (cons new-level first)]
+               [else (cons new-level
+                           (make-stx (cons first block) ln col pos (- end-pos pos)))])])]))
 
 ;; string? -> (string? . (U '|.| syntax?))
 ;; reads a block and handles group, (quote), (unquote),
