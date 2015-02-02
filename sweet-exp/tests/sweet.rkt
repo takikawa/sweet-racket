@@ -39,3 +39,5 @@ let
     |;(]{ ,`'"# | 7
   check-equal? {| | + |;(]{ ,`'"# |} 12
 
+(check-equal? '((a 1) (b 2) (c 3)) (list (list `a 1) (list 'b 2) (list 'c 3)))
+

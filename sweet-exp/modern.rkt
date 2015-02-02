@@ -354,11 +354,11 @@
       [(char=? c #\')
        (read-char port)
        (define q (make-stx 'quote ln col pos 0))
-       (syntax-cons q (modern-read2 port))]
+       (syntax-list q (modern-read2 port))]
       [(char=? c #\`)
        (read-char port)
        (define q (make-stx 'quasiquote ln col pos 0))
-       (syntax-cons q (modern-read2 port))]
+       (syntax-list q (modern-read2 port))]
       [(char=? c #\,)
        (read-char port)
        (cond [(char=? #\@ (peek-char port))
