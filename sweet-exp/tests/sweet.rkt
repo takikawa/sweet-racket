@@ -1,5 +1,7 @@
 #lang reader (submod "../main.rkt" reader) racket
 
+require rackunit
+
 substring "Hello"
   1
   3
@@ -22,3 +24,12 @@ let
 begin-for-syntax
   define x 3
   add1 x
+
+define (f . args) args
+
+check-equal? (f 1 2 3) (list 1 2 3)
+
+define (g a . args) list(a args)
+
+check-equal? (g 1 2 3) (list 1 (list 2 3))
+

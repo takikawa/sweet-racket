@@ -273,7 +273,7 @@
        c]
       [else
         (define datum (modern-read2 port))
-        (cond [(eq? datum '|.|) (read-dot-extension)]
+        (cond [(eq? datum '|.|) (append subs (read-dot-extension))]
               [else (read-accum (append subs (list datum)))])]))
 
   ;; read-dot-extension : -> syntax?
