@@ -33,3 +33,9 @@ define (g a . args) list(a args)
 
 check-equal? (g 1 2 3) (list 1 (list 2 3))
 
+let
+  group
+    | | 5
+    |;(]{ ,`'"# | 7
+  check-equal? {| | + |;(]{ ,`'"# |} 12
+
