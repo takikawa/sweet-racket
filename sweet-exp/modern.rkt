@@ -116,14 +116,20 @@
   `(#\space #\newline #\return #\( #\) #\[ #\] #\{ #\} ,tab))
 
 (define (read-until-delim port delims)
-  ; Read characters until eof or "delims" is seen; do not consume them.
+  ; Read characters until eof, "delims", or whitespace is seen; do not consume them.
   ; Returns a list of chars.
-  (let ((c (peek-char port)))
-    (cond
-       ((eof-object? c) '())
-       ((ismember? c delims) '())
-       ((char-whitespace? c) '())
-       (#t (cons (read-char port) (read-until-delim port delims))))))
+  (define (stop-char? c)
+    (or (ismember? c delims)
+        (char-whitespace? c)))
+  (read-until port stop-char?))
+
+(define (read-until port stop-char?)
+  ; Read characters until eof or a character that passes stop-char? is seen; do not consume them.
+  ; Returns a list of chars.
+  (let ([c (peek-char port)])
+    (cond [(eof-object? c) '()]
+          [(stop-char? c) '()]
+          [else (cons (read-char port) (read-until port stop-char?))])))
 
 (define (read-error message)
   (display "Error: ")
@@ -184,7 +190,7 @@
         (read-char port) ; Skip |
         (let ((newsymbol
           (string->symbol (list->string
-            (read-until-delim port '(#\|))))))
+            (read-until port (λ (c) (char=? c #\|)))))))
           (read-char port)
           newsymbol))
       (#t ; Nothing else.  Must be a symbol start.
