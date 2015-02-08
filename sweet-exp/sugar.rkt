@@ -160,8 +160,10 @@
       (read-char)
       (readblock level)]
     [else
+      (define-values (ln col pos) (port-next-location (current-input-port)))
       (define first (readitem level))
       (define rest  (readblock level))
+      (define end-pos (port-pos (current-input-port)))
       (define new-level (car rest))
       (define stx (cdr rest))
       (define block (and (not (eof-object? stx))
@@ -173,8 +175,7 @@
             [(eof-object? first) (cons new-level first)]
             [(eof-object? stx) (cons new-level first)]
             [else (cons new-level
-                        (datum->syntax stx (cons first block)
-                          #f orig-stx))])]))
+                        (make-stx (cons first block) ln col pos (- end-pos pos)))])]))
 
 ;; string? -> (string? . (U '|.| syntax?))
 ;; reads a block and handles group, (quote), (unquote),
