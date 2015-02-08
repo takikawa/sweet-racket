@@ -62,6 +62,7 @@
          syntax/parse
          syntax/readerr
          syntax/stx
+         syntax/srcloc
          "read-sig.rkt"
          "util.rkt")
 
@@ -253,15 +254,15 @@
   (define nfx (datum->syntax stx 'nfx stx))
   (if (simple-infix-listp stx)
       (transform-simple-infix stx)  ; Simple infix expression.
-      (syntax-cons nfx stx)))       ; Non-simple; prepend "nfx" to the list.
+      (datum->syntax stx (cons nfx stx) stx)))       ; Non-simple; prepend "nfx" to the list.
 
-;; my-read-delimited-list : char? input-port? -> syntax?
+;; my-read-delimited-list : char? input-port? -> (listof syntax?)
 ;; like read-delimited-list of Common Lisp, but calls modern-read-syntax instead.
 ;; read the "inside" of a list until its matching stop-char, returning list.
 (define (my-read-delimited-list stop-char port)
-  (define-values (_1 _2 start) (port-next-location port))
-
-  ;; read-accum : (listof syntax?) e-n-i? -> (or/c eof syntax?)
+  ;(define-values (_1 _2 start) (port-next-location port))
+  
+  ;; read-accum : (listof syntax?) e-n-i? -> (or/c eof (listof syntax?))
   ;; accum: lst accumulates the sub-expression syntaxes
   (define (read-accum subs)
     (skip-whitespace port)
@@ -272,8 +273,8 @@
        (raise-read-eof-error "EOF in middle of list" #f ln col pos #f)
        c]
       [(char=? c stop-char)
-        (read-char port)
-        (datum->syntax #f subs (list #f ln col start (- pos start)) orig-stx)] ;(
+       (read-char port)
+       subs]
       [(ismember? c '(#\) #\] #\}))
        (raise-read-error "Bad closing character" #f ln col pos #f)
        c]
@@ -306,19 +307,23 @@
          stx]  ; Prefixes MUST be symbol or cons; return original value.
         [(eof-object? c) stx]
         [(char=? c #\( ) ; ).  Implement f(x).
-          (read-char port)
-          (modern-process-tail port ;(
-            (syntax-cons stx (my-read-delimited-list #\) port)))]
+         (define args (modern-read2 port))
+         (define end-pos (port-pos port))
+         (modern-process-tail port
+           (datum->syntax stx (cons stx args)
+             (update-source-location stx #:span (- end-pos (syntax-position stx)))))]
         [(char=? c #\[ )  ; Implement f[x]
-          (read-char port)
-          (modern-process-tail port
-            (syntax-cons stx (my-read-delimited-list #\] port)))]
+         (define args (modern-read2 port))
+         (define end-pos (port-pos port))
+         (modern-process-tail port
+           (datum->syntax stx (cons stx args)
+             (update-source-location stx #:span (- end-pos (syntax-position stx)))))]
         [(char=? c #\{ )  ; Implement f{x}
-          (read-char port)
-          (modern-process-tail port
-            (syntax-list stx
-              (process-curly
-                (my-read-delimited-list #\} port))))]
+         (define arg (modern-read2 port))
+         (define end-pos (port-pos port))
+         (modern-process-tail port
+           (datum->syntax stx (list stx arg)
+             (update-source-location stx #:span (- end-pos (syntax-position stx)))))]
         [else stx]))
 
 (define (skip-line port)
@@ -353,37 +358,54 @@
       [(eof-object? c) eof]
       [(char=? c #\')
        (read-char port)
-       (define q (make-stx 'quote ln col pos 0))
-       (syntax-list q (modern-read2 port))]
+       (define q (make-stx 'quote ln col pos 1))
+       (define stx (modern-read2 port))
+       (define end-pos (port-pos port))
+       (datum->syntax stx (list q stx)
+         (update-source-location q #:span (- end-pos pos)))]
       [(char=? c #\`)
        (read-char port)
-       (define q (make-stx 'quasiquote ln col pos 0))
-       (syntax-list q (modern-read2 port))]
+       (define q (make-stx 'quasiquote ln col pos 1))
+       (define stx (modern-read2 port))
+       (define end-pos (port-pos port))
+       (datum->syntax stx (list q stx)
+         (update-source-location q #:span (- end-pos pos)))]
       [(char=? c #\,)
        (read-char port)
        (cond [(char=? #\@ (peek-char port))
               (read-char port)
-              (define u (make-stx 'unquote-splicing ln col pos 0))
-              (syntax-list u (modern-read2 port))]
+              (define u (make-stx 'unquote-splicing ln col pos 2))
+              (define stx (modern-read2 port))
+              (define end-pos (port-pos port))
+              (datum->syntax stx (list u stx)
+                (update-source-location u #:span (- end-pos pos)))]
              [else
-              (define u (make-stx 'unquote ln col pos 0))
-              (syntax-list u (modern-read2 port))])]
-      [(char=? c #\( ) ; )
-        (if modern-backwards-compatible
-          (underlying-read port)
-          (begin
-            (read-char port) ; (
-            (my-read-delimited-list #\) port)))]
+              (define u (make-stx 'unquote ln col pos 1))
+              (define stx (modern-read2 port))
+              (define end-pos (port-pos port))
+              (datum->syntax stx (list u stx)
+                (update-source-location u #:span (- end-pos pos)))])]
+      [(char=? c #\( )
+       (cond [modern-backwards-compatible (underlying-read port)]
+             [else
+              (read-char port)
+              (define lst (my-read-delimited-list #\) port))
+              (define end-pos (port-pos port))
+              (make-stx lst ln col pos (- end-pos pos))])]
       [(char=? c #\[ )
-          (read-char port)
-          (my-read-delimited-list #\] port)]
+       (read-char port)
+       (define lst (my-read-delimited-list #\] port))
+       (define end-pos (port-pos port))
+       (make-stx lst ln col pos (- end-pos pos))]
       [(char=? c #\{ )
-        (read-char port)
-        (process-curly
-          (my-read-delimited-list #\} port))]
+       (read-char port)
+       (define lst (my-read-delimited-list #\} port))
+       (define end-pos (port-pos port))
+       (process-curly
+        (make-stx lst ln col pos (- end-pos pos)))]
       [(char=? c #\; )  ; Handle ";" directly, so we don't lose control.
-        (skip-line port)
-        (modern-read2 port)]
+       (skip-line port)
+       (modern-read2 port)]
       [else (define result (underlying-read port))
             ; (printf "DEBUG result = ~a ~n" result)
             ; (printf "DEBUG peek after = ~a ~n" (peek-char port))
