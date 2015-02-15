@@ -189,7 +189,7 @@
            [(eof-object? stx) (cons new-level first)]
            [else (define new-stx (make-stx (cons first block) ln col pos (- end-pos pos)))
                  (cons new-level
-                       (cond [(keyword? (syntax-e first))
+                       (cond [(keyword? (maybe-syntax-e first))
                               (syntax-property new-stx 'ungroup-kw #t)]
                              [else new-stx]))])]))
 
