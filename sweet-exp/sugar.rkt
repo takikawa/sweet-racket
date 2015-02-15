@@ -127,17 +127,28 @@
     (define read (readblock-clean level))
     (define next-level (car read))
     (define stx (cdr read))
-    (define block (syntax->list stx))
     (cond [(equal? next-level level)
-            (define reads (helper level))
-            (define next-next-level (car reads))
-            (define next-blocks (cdr reads))
-            (if (eq? (maybe-syntax-e stx) '|.|)
-                (if (pair? next-blocks)
-                    (cons next-next-level (car next-blocks))
-                    (cons next-next-level next-blocks))
-                (cons next-next-level (cons stx next-blocks)))]
-          [else (cons next-level (list stx))]))
+           (define reads (helper level))
+           (define next-next-level (car reads))
+           (define next-blocks (cdr reads))
+           (cond [(eq? (maybe-syntax-e stx) '|.|)
+                  (if (pair? next-blocks)
+                      (cons next-next-level (car next-blocks))
+                      (cons next-next-level next-blocks))]
+                 [(and treat-keywords-specially? (syntax-property stx 'ungroup-kw))
+                  (syntax-parse stx
+                    [(kw) (cons next-next-level (list* #'kw next-blocks))]
+                    [(kw arg) (cons next-next-level (list* #'kw #'arg next-blocks))]
+                    [(kw . args) (cons next-next-level (list* #'kw #'args next-blocks))])]
+                 [else (cons next-next-level (cons stx next-blocks))])]
+          [else
+           (cond [(and treat-keywords-specially? (syntax-property stx 'ungroup-kw))
+                  (syntax-parse stx
+                    [(kw) (cons next-level (list #'kw))]
+                    [(kw arg) (cons next-level (list #'kw #'arg))]
+                    [(kw . args) (cons next-level (list #'kw #'args))])]
+                 [else
+                  (cons next-level (list stx))])]))
 
   (match (helper level)
     [(cons lvl lst)
@@ -162,26 +173,25 @@
       (read-char)
       (readblock level)]
     [else
-      (define-values (ln col pos) (port-next-location (current-input-port)))
-      (define first (readitem level))
-      (cond
-        [(and treat-keywords-specially? (keyword? (maybe-syntax-e first)))
-         (cons level first)]
-        [else
-         (define rest  (readblock level))
-         (define end-pos (port-pos (current-input-port)))
-         (define new-level (car rest))
-         (define stx (cdr rest))
-         (define block (and (not (eof-object? stx))
-                            (syntax->list stx)))
-         (cond [(eq? (maybe-syntax-e first) '|.|)
-                (if (pair? block)
-                    (cons new-level (car block))
-                    rest)]
-               [(eof-object? first) (cons new-level first)]
-               [(eof-object? stx) (cons new-level first)]
-               [else (cons new-level
-                           (make-stx (cons first block) ln col pos (- end-pos pos)))])])]))
+     (define-values (ln col pos) (port-next-location (current-input-port)))
+     (define first (readitem level))
+     (define rest  (readblock level))
+     (define end-pos (port-pos (current-input-port)))
+     (define new-level (car rest))
+     (define stx (cdr rest))
+     (define block (and (not (eof-object? stx))
+                        (syntax->list stx)))
+     (cond [(eq? (maybe-syntax-e first) '|.|)
+            (if (pair? block)
+                (cons new-level (car block))
+                rest)]
+           [(eof-object? first) (cons new-level first)]
+           [(eof-object? stx) (cons new-level first)]
+           [else (define new-stx (make-stx (cons first block) ln col pos (- end-pos pos)))
+                 (cons new-level
+                       (cond [(keyword? (maybe-syntax-e first))
+                              (syntax-property new-stx 'ungroup-kw #t)]
+                             [else new-stx]))])]))
 
 ;; string? -> (string? . (U '|.| syntax?))
 ;; reads a block and handles group, (quote), (unquote),
