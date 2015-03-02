@@ -26,6 +26,9 @@
 
 (define treat-keywords-specially? #t)
 
+(define (not-actual-parens stx)
+  (syntax-property stx 'sweet-exp-not-actual-parens #t))
+
 (define sugar-read-save read-syntax)
 
 ;; -> void?
@@ -107,13 +110,13 @@
 
   (syntax-parse stx
     [((~literal group) e ...)
-     (datum->syntax stx (stx-cdr stx) stx)]
+     (datum->syntax stx (stx-cdr stx) stx stx)]
     [(() e ...)
-     (datum->syntax stx (stx-cdr stx) stx)]
+     (datum->syntax stx (stx-cdr stx) stx stx)]
     [((q:quote-like) e e1 ...)
-     (datum->syntax stx (cons #'q (stx-cdr stx)) stx)]
+     (datum->syntax stx (cons #'q (stx-cdr stx)) stx stx)]
     [((e ...) e1 ...)
-     (datum->syntax stx (cons (clean (stx-car stx)) (stx-cdr stx)) stx)]
+     (datum->syntax stx (cons (clean (stx-car stx)) (stx-cdr stx)) stx stx)]
     [(e ...) stx]
     [e stx]
     [() stx]))
@@ -139,14 +142,15 @@
                   (syntax-parse stx
                     [(kw) (cons next-next-level (list* #'kw next-blocks))]
                     [(kw arg) (cons next-next-level (list* #'kw #'arg next-blocks))]
-                    [(kw . args) (cons next-next-level (list* #'kw #'args next-blocks))])]
+                    [(kw . args) (cons next-next-level
+                                       (list* #'kw (not-actual-parens #'args) next-blocks))])]
                  [else (cons next-next-level (cons stx next-blocks))])]
           [else
            (cond [(and treat-keywords-specially? (syntax-property stx 'ungroup-kw))
                   (syntax-parse stx
                     [(kw) (cons next-level (list #'kw))]
                     [(kw arg) (cons next-level (list #'kw #'arg))]
-                    [(kw . args) (cons next-level (list #'kw #'args))])]
+                    [(kw . args) (cons next-level (list #'kw (not-actual-parens #'args)))])]
                  [else
                   (cons next-level (list stx))])]))
 
@@ -189,9 +193,10 @@
            [(eof-object? stx) (cons new-level first)]
            [else (define new-stx (make-stx (cons first block) ln col pos (- end-pos pos)))
                  (cons new-level
-                       (cond [(keyword? (maybe-syntax-e first))
-                              (syntax-property new-stx 'ungroup-kw #t)]
-                             [else new-stx]))])]))
+                       (not-actual-parens
+                        (cond [(keyword? (maybe-syntax-e first))
+                               (syntax-property new-stx 'ungroup-kw #t)]
+                              [else new-stx])))])]))
 
 ;; string? -> (string? . (U '|.| syntax?))
 ;; reads a block and handles group, (quote), (unquote),
