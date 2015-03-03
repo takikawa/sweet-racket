@@ -170,6 +170,7 @@
   ; and guile, but NOT with R5RS.  Most people won't notice, and I
   ; _like_ case-sensitivity.
   (skip-whitespace port)
+  (define-values (ln col pos) (port-next-location port))
   (let ((c (peek-char port)))
     (cond
       ((eof-object? c) c)
@@ -194,6 +195,8 @@
             (read-until port (λ (c) (char=? c #\|)))))))
           (read-char port)
           newsymbol))
+      [(ismember? c '(#\) #\] #\}))
+       (raise-read-error (format "unexpected `~a`" c) (current-source-name) ln col pos 1)]
       (#t ; Nothing else.  Must be a symbol start.
         (read-symbol port)))))
 
