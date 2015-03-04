@@ -273,13 +273,13 @@
     (define-values (ln col pos) (port-next-location port))
     (cond
       [(eof-object? c)
-       (raise-read-eof-error "EOF in middle of list" #f ln col pos #f)
+       (raise-read-eof-error "EOF in middle of list" (current-source-name) ln col pos 0)
        c]
       [(char=? c stop-char)
        (read-char port)
        subs]
       [(ismember? c '(#\) #\] #\}))
-       (raise-read-error "Bad closing character" #f ln col pos #f)
+       (raise-read-error "Bad closing character" (current-source-name) ln col pos 1)
        c]
       [else
         (define datum (modern-read2 port))
@@ -293,7 +293,7 @@
     (skip-whitespace port)
     (cond [(not (eqv? (peek-char port) stop-char))
            (raise-read-error "Bad closing character after . datum"
-                             #f ln col pos #f)]
+                             (current-source-name) ln col pos 1)]
           [else (read-char port)
                 datum2]))
 
