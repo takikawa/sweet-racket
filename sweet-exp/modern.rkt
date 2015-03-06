@@ -116,51 +116,14 @@
 (define modern-delimiters
   `(#\space #\newline #\return #\( #\) #\[ #\] #\{ #\} ,tab))
 
-(define (read-until-delim port delims)
-  ; Read characters until eof, "delims", or whitespace is seen; do not consume them.
-  ; Returns a list of chars.
-  (define (stop-char? c)
-    (or (ismember? c delims)
-        (char-whitespace? c)))
-  (read-until port stop-char?))
-
-(define (read-until port stop-char?)
-  ; Read characters until eof or a character that passes stop-char? is seen; do not consume them.
-  ; Returns a list of chars.
-  (let ([c (peek-char port)])
-    (cond [(eof-object? c) '()]
-          [(stop-char? c) '()]
-          [else (cons (read-char port) (read-until port stop-char?))])))
-
-(define (read-error message)
-  (display "Error: ")
-  (display message)
-  '())
-
-(define (read-number port starting-lyst)
-  (define-values (ln col pos) (port-next-location port))
-  (define digits
-    (append starting-lyst
-      (read-until-delim port modern-delimiters)))
-  (define n (string->number (list->string digits)))
-  (define span (length digits))
-  (make-stx n ln col pos span))
-
-(define digits '(#\0 #\1 #\2 #\3 #\4 #\5 #\6 #\7 #\8 #\9))
-
 (define (process-period port)
   ; We've peeked a period character.  Returns what it represents.
-  (read-char port) ; Remove .
-  (let ((c (peek-char port)))
+  (let ([c2 (peek-char port 1)]) ; c2 is the char after the period
     (cond
-      ((eof-object? c) '|.|) ; period eof; return period.
-      ((ismember? c digits)
-        (read-number port (list #\.)))  ; period digit - it's a number.
-      (#t
-        ; At this point, Scheme only requires support for "." or "...".
-        ; As an extension we can support them all.
-        (string->symbol (list->string (cons #\.
-          (read-until-delim port modern-delimiters))))))))
+      [(eof-object? c2) (read-char port) dot] ; period eof; return period.
+      [(ismember? c2 modern-delimiters) (read-char port) dot]
+      [else
+       (old-read-syntax (current-source-name) port)])))
 
 (define (underlying-read port)
   ; This tiny reader implementation REQUIRES a port value.
@@ -171,40 +134,15 @@
   ; _like_ case-sensitivity.
   (skip-whitespace port)
   (define-values (ln col pos) (port-next-location port))
-  (let ((c (peek-char port)))
+  (let ([c (peek-char port)])
     (cond
-      ((eof-object? c) c)
-      ((char=? c #\")      ; old readers tend to handle strings okay, call it.
-        (old-read-syntax (current-source-name) port))
-      ((ismember? c digits) ; Initial digit.
-        (old-read-syntax (current-source-name) port))
-      ((char=? c #\#)
-       (old-read-syntax (current-source-name) port)) ; Racket's reader handles this
-      ((char=? c #\.) (process-period port))
-      ((or (char=? c #\+) (char=? c #\-))  ; Initial + or -
-        (if (ismember? (peek-char port 1) digits)
-            (begin (read-char) (read-number port (list c)))
-            (read-symbol port)))
-      ((char=? c #\; )
-        (skip-line port)
-        (underlying-read port))
-      ((char=? c #\| )   ; Scheme extension, |...| symbol (like Common Lisp)
-        (read-char port) ; Skip |
-        (let ((newsymbol
-          (string->symbol (list->string
-            (read-until port (λ (c) (char=? c #\|)))))))
-          (read-char port)
-          newsymbol))
-      [(ismember? c '(#\) #\] #\}))
-       (raise-read-error (format "unexpected `~a`" c) (current-source-name) ln col pos 1)]
-      (#t ; Nothing else.  Must be a symbol start.
-        (read-symbol port)))))
-
-(define (read-symbol port)
-  (define-values (ln col pos) (port-next-location port))
-  (define chars (read-until-delim port modern-delimiters))
-  (define sym (string->symbol (list->string chars)))
-  (make-stx sym ln col pos (length chars)))
+      [(eof-object? c) c]
+      [(char=? c #\.) (process-period port)]
+      [(char=? c #\; )
+       (skip-line port)
+       (underlying-read port)]
+      [else
+       (old-read-syntax (current-source-name) port)])))
 
 
 ; End of Scheme reader re-implementation.
@@ -283,7 +221,7 @@
        c]
       [else
         (define datum (modern-read2 port))
-        (cond [(eq? datum '|.|) (append subs (read-dot-extension))]
+        (cond [(dot? datum) (append subs (read-dot-extension))]
               [else (read-accum (append subs (list datum)))])]))
 
   ;; read-dot-extension : -> syntax?
@@ -424,17 +362,17 @@
       (syntax->datum stx)))
 
 (define (modern-filter)
-   (let ((result (modern-read (current-input-port))))
-	(if (eof-object? result)
-	    result
-          (begin (write result) (newline) (modern-filter)))))
+  (let ((result (modern-read (current-input-port))))
+    (if (eof-object? result)
+        result
+        (begin (write result) (newline) (modern-filter)))))
 
 (define (modern-load filename)
   (define (load port)
     (let ((inp (modern-read port)))
-	(if (eof-object? inp)
-	    #t
-	    (begin
-	      (eval inp)
-	      (load port)))))
+      (if (eof-object? inp)
+          #t
+          (begin
+            (eval inp)
+            (load port)))))
   (load (open-input-file filename)))
