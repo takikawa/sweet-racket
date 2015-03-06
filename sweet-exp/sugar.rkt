@@ -14,8 +14,11 @@
 ;; The following code implements I-expressions.
 
 (require racket/match
+         racket/bool
          syntax/parse
          syntax/stx
+         syntax/srcloc
+         syntax/readerr
          "read-sig.rkt"
          "util.rkt")
 
@@ -64,7 +67,7 @@
             (read-char)
             (readquote level 'unquote-splicing)]
            [else (readquote level 'unquote)])]
-     [else (sugar-read-save)]))
+        [else (sugar-read-save)]))
 
 (define (indentation>? indentation1 indentation2)
   (let ([len1 (string-length indentation1)]
@@ -124,17 +127,17 @@
 
   ;; indent -> (listof syntax?)
   (define (helper level)
-    (define read (readblock-clean level))
-    (define next-level (car read))
-    (define stx (cdr read))
+    (match-define (cons next-level stx) (readblock-clean level))
     (cond [(equal? next-level level)
-           (define reads (helper level))
-           (define next-next-level (car reads))
-           (define next-blocks (cdr reads))
-           (cond [(eq? (maybe-syntax-e stx) '|.|)
-                  (if (pair? next-blocks)
-                      (cons next-next-level (car next-blocks))
-                      (cons next-next-level next-blocks))]
+           (match-define (cons next-next-level next-blocks) (helper level))
+           (cond [(dot? stx)
+                  (match next-blocks
+                    [(list) (read-err/srcloc "expected something after `.`" #f)]
+                    [(list x) (cons next-next-level x)]
+                    [(list a _ ... b)
+                     (read-err/srcloc "two many expressions after `.`"
+                                      (update-source-location a
+                                        #:span (- (source-location-end b) (syntax-position a))))])]
                  [(and treat-keywords-specially? (syntax-property stx 'ungroup-kw))
                   (syntax-parse stx
                     [(kw) (cons next-next-level (list* #'kw next-blocks))]
@@ -159,55 +162,55 @@
   (define char (peek-char))
   (cond
     [(eof-object? char)
-      (cons -1 char)]
+     (cons -1 char)]
     [(eqv? char #\;)
-      (consume-to-eol)
-      (readblock level)]
+     (consume-to-eol)
+     (readblock level)]
     [(eqv? char #\newline)
-      (read-char)
-      (define next-level (indentationlevel))
-      (if (indentation>? next-level level)
-          (readblocks next-level)
-          (cons next-level (datum->syntax #f '())))]
+     (read-char)
+     (define next-level (indentationlevel))
+     (if (indentation>? next-level level)
+         (readblocks next-level)
+         (cons next-level (datum->syntax #f '())))]
     [(char-whitespace? char)
-      (read-char)
-      (readblock level)]
+     (read-char)
+     (readblock level)]
     [else
      (define-values (ln col pos) (port-next-location (current-input-port)))
      (define first (readitem level))
-     (define rest  (readblock level))
+     (match-define (cons new-level rest) (readblock level))
      (define end-pos (port-pos (current-input-port)))
-     (define new-level (car rest))
-     (define stx (cdr rest))
-     (define block (and (not (eof-object? stx))
-                        (syntax->list stx)))
-     (cond [(eq? (maybe-syntax-e first) '|.|)
-            (if (pair? block)
-                (cons new-level (car block))
-                rest)]
-           [(eof-object? first) (cons new-level first)]
-           [(eof-object? stx) (cons new-level first)]
-           [else (define new-stx (make-stx (cons first block) ln col pos (- end-pos pos)))
-                 (cons new-level
-                       (cond [(keyword? (maybe-syntax-e first))
-                              (syntax-property new-stx 'ungroup-kw #t)]
-                             [else new-stx]))])]))
+     (cond [(eof-object? first) (cons new-level first)]
+           [(eof-object? rest) (cons new-level first)]
+           [(dot? first)
+            (match (syntax->list rest)
+              [(list) (cons new-level first)]
+              [(list x) (cons new-level x)]
+              [(list a _ ... b)
+               (read-err/srcloc "two many expressions after `.`"
+                                (update-source-location a
+                                  #:span (- (source-location-end b) (syntax-position a))))])]
+           [else
+            (define rst
+              (if (stx-pair? rest) (maybe-syntax-e rest) rest))
+            (define new-stx
+              (make-stx (cons first rst) ln col pos (- end-pos pos)))
+            (cons new-level
+                  (cond [(keyword? (maybe-syntax-e first))
+                         (syntax-property new-stx 'ungroup-kw #t)]
+                        [else new-stx]))])]))
 
-;; string? -> (string? . (U '|.| syntax?))
+;; string? -> (string? . (U dot eof syntax?))
 ;; reads a block and handles group, (quote), (unquote),
 ;; (unquote-splicing) and (quasiquote).
 (define (readblock-clean level)
-  (define read (readblock level))
-  (define next-level (car read))
-  (define stx (cdr read))
-  (define block (and (not (eof-object? stx))
-                          (syntax->list stx)))
-  (cond [(or (not block) (> (length block) 1))
-         (cons next-level (clean stx))]
-        [(= (length block) 1)
-         (cons next-level (car block))]
+  (match-define (cons next-level stx) (readblock level))
+  (cond [(eof-object? stx)
+         (cons next-level stx)]
         [else
-         (cons next-level (datum->syntax stx '|.|))]))
+         (match (syntax->list stx)
+           [(list x) (cons next-level x)]
+           [_        (cons next-level (clean stx))])]))
 
 ;; Read single complete I-expression.
 (define (sugar-start-expr)
@@ -217,16 +220,15 @@
     [(eof-object? c) c] ; EOF - return it, we're done.
     [(char-comment? c) => (λ (x) (read-comment))]
     [(eqv? c #\newline)
-      (read-char)              ; Newline (with no preceding comment).
-      (sugar-start-expr)]      ; Consume and again
+     (read-char)              ; Newline (with no preceding comment).
+     (sugar-start-expr)]      ; Consume and again
     [else
      ; TODO: Handle  (> (string-length indentation) 0)
-     (define read (readblock-clean ""))
-     (define level (car read))
-     (define stx (cdr read))
-     (define block (maybe-syntax-e stx))
+     (define-values (ln col pos) (port-next-location (current-input-port)))
+     (match-define (cons level stx) (readblock-clean ""))
      (cond
-       [(eq? block '|.|) (datum->syntax stx '())]
+       [(dot? stx)
+        (raise-read-error "unexpected `.`" (current-source-name) ln col pos 1)]
        [else stx])]))
 
 ;; predicate for comment characters
@@ -258,19 +260,19 @@
 
 
 (define (sugar-filter)
-   (let ((result (sugar-read (current-input-port))))
-        (if (eof-object? result)
-            result
-          (begin (write result) (newline) (sugar-filter)))))
+  (let ((result (sugar-read (current-input-port))))
+    (if (eof-object? result)
+        result
+        (begin (write result) (newline) (sugar-filter)))))
 
 (define (sugar-load filename)
   (define (load port)
     (let ((inp (sugar-read port)))
-        (if (eof-object? inp)
-            #t
-            (begin
-              (eval inp)
-              (load port)))))
+      (if (eof-object? inp)
+          #t
+          (begin
+            (eval inp)
+            (load port)))))
   (load (open-input-file filename)))
 
 
