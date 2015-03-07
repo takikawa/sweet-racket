@@ -104,6 +104,21 @@
      (read-char port)
      (skip-whitespace port)]))
 
+(define (skip-whitespace+comments port)
+  (skip-whitespace port)
+  (define c (peek-char port))
+  (when (char? c)
+    (cond [(char=? c #\;)
+           (skip-line port)
+           (skip-whitespace+comments port)]
+          [(char=? c #\#)
+           (define c2 (peek-char port 1))
+           (cond [(and (char? c2) (char=? c2 #\;))
+                  (read-char port) (read-char port)
+                  (modern-read2 port)
+                  (skip-whitespace+comments port)])]
+          )))
+
 ; Unfortunately, since most Scheme readers will consume [, {, }, and ],
 ; we have to re-implement our own Scheme reader.  Ugh.
 ; If you fix your Scheme's "read" so that [, {, }, and ] are considered
@@ -132,15 +147,12 @@
   ; Note: This reader is case-sensitive, which is consistent with R6RS
   ; and guile, but NOT with R5RS.  Most people won't notice, and I
   ; _like_ case-sensitivity.
-  (skip-whitespace port)
+  (skip-whitespace+comments port)
   (define-values (ln col pos) (port-next-location port))
   (let ([c (peek-char port)])
     (cond
       [(eof-object? c) c]
       [(char=? c #\.) (process-period port)]
-      [(char=? c #\; )
-       (skip-line port)
-       (underlying-read port)]
       [else
        (old-read-syntax (current-source-name) port)])))
 
@@ -206,7 +218,7 @@
   ;; read-accum : (listof syntax?) e-n-i? -> (or/c eof (listof syntax?))
   ;; accum: lst accumulates the sub-expression syntaxes
   (define (read-accum subs)
-    (skip-whitespace port)
+    (skip-whitespace+comments port)
     (define c (peek-char port))
     (define-values (ln col pos) (port-next-location port))
     (cond
@@ -228,7 +240,7 @@
   (define (read-dot-extension)
     (define datum2 (modern-read2 port))
     (define-values (ln col pos) (port-next-location port))
-    (skip-whitespace port)
+    (skip-whitespace+comments port)
     (cond [(not (eqv? (peek-char port) stop-char))
            (raise-read-error "Bad closing character after . datum"
                              (current-source-name) ln col pos 1)]
@@ -292,7 +304,7 @@
     (modern-read2/no-process-tail port)))
 
 (define (modern-read2/no-process-tail port)
-  (skip-whitespace port)
+  (skip-whitespace+comments port)
   (define c (peek-char port))
   (define-values (ln col pos) (port-next-location port))
   ; (printf "modern-read-syntax peeked at: ~a ~n" c)
