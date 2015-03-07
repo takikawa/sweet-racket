@@ -219,6 +219,9 @@
       [(ismember? c '(#\) #\] #\}))
        (raise-read-error "Bad closing character" (current-source-name) ln col pos 1)
        c]
+      [(char=? c #\;)
+       (skip-line port)
+       (read-accum subs)]
       [else
         (define datum (modern-read2 port))
         (cond [(dot? datum) (append subs (read-dot-extension))]
