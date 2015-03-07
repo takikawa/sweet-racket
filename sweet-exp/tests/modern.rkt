@@ -19,3 +19,13 @@ not{#t and #f}
 
 (check-equal? (f 2) 4)
 (check-equal? (f 3) 9)
+
+(define (f2 x)
+  {x * x}
+  #;this(is a comment)
+  )
+
+(define (f3 x)
+  {x * x}
+  #|this is a comment|#
+  )

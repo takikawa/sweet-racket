@@ -107,16 +107,24 @@
 (define (skip-whitespace+comments port)
   (skip-whitespace port)
   (define c (peek-char port))
+  (define-values (ln col pos) (port-next-location port))
   (when (char? c)
     (cond [(char=? c #\;)
            (skip-line port)
            (skip-whitespace+comments port)]
           [(char=? c #\#)
            (define c2 (peek-char port 1))
-           (cond [(and (char? c2) (char=? c2 #\;))
-                  (read-char port) (read-char port)
-                  (modern-read2 port)
-                  (skip-whitespace+comments port)])]
+           (when (char? c2)
+             (cond [(char=? c2 #\;)
+                    (read-char port) (read-char port)
+                    (modern-read2 port)
+                    (skip-whitespace+comments port)]
+                   [(char=? c2 #\|)
+                    (read-char port) (read-char port)
+                    (unless (regexp-match? (regexp (regexp-quote "|#")) port)
+                      (raise-read-eof-error "unclosed block comment"
+                                            (current-source-name) ln col pos 2))
+                    (skip-whitespace+comments port)]))]
           )))
 
 ; Unfortunately, since most Scheme readers will consume [, {, }, and ],
