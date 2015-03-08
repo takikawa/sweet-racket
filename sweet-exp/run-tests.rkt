@@ -9,6 +9,7 @@
          "tests/kw.rkt"
          "tests/lazy.rkt"
          "tests/modern.rkt"
+         "tests/paren-shape.rkt"
          "tests/rest-arg.rkt"
          "tests/return.rkt"
          ;"tests/srcloc.rkt" ; run separately

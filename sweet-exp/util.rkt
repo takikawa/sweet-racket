@@ -18,6 +18,9 @@
     (vector (current-source-name) ln col pos span)
     orig-stx))
 
+(define (paren-shape stx shape)
+  (syntax-property stx 'paren-shape shape))
+
 (define (port-pos in)
   (define-values (_1 _2 pos) (port-next-location in))
   pos)
