@@ -12,7 +12,7 @@
          "tests/paren-shape.rkt"
          "tests/rest-arg.rkt"
          "tests/return.rkt"
-         ;"tests/srcloc.rkt" ; run separately
+         "tests/srcloc.rkt"
          "tests/sweet.rkt"
          "tests/typed.rkt"
          "tests/typed2.rkt"
