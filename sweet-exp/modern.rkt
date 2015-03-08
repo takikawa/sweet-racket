@@ -177,16 +177,16 @@
 ; Otherwise it returns false.
 ; If passed empty list, returns true (so recursion works correctly).
 (define (even-and-op-prefix op lyst)
-  (cond
-    [(stx-null? lyst) #t]
-    [(not (stx-pair? lyst)) #f] ; Not a list.
-    [(not (free-identifier=? op (stx-car lyst))) #f] ; fail - operators not all equal?.
-    [(null? (stx-cdr lyst)) #f] ; fail - odd # of parameters in lyst.
-    [#t (even-and-op-prefix op (stx-cdr (stx-cdr lyst)))])) ; recurse.
+  (syntax-parse lyst
+    [() #t]
+    [(fst:id _ . rst)
+     (and (free-identifier=? op #'fst)
+          (even-and-op-prefix op #'rst))]
+    [_ #f]))
 
 ; syntax? -> any/c
 ; Return True if the lyst is in simple infix format (and should be converted
-; at read time).  Else returns NIL.
+; at read time).  Else returns #f.
 (define (simple-infix-listp stx)
   (syntax-parse stx
     [(fst snd:id trd rst ...)
@@ -212,10 +212,14 @@
        (snd #,@(alternating-parameters (syntax/loc stx (fst snd rst ...)))))]))
 
 (define (process-curly stx)
-  (define nfx (datum->syntax stx 'nfx stx))
-  (if (simple-infix-listp stx)
-      (transform-simple-infix stx)  ; Simple infix expression.
-      (datum->syntax stx (cons nfx stx) stx)))       ; Non-simple; prepend "nfx" to the list.
+  (syntax-parse stx
+    [(e) #'e]
+    [(op:id e) stx]
+    [_ #:when (simple-infix-listp stx)
+       (transform-simple-infix stx)]  ; Simple infix expression.
+    [_ (define nfx (datum->syntax stx 'nfx stx))
+       (datum->syntax stx (cons nfx stx) stx)]  ; Non-simple; prepend "nfx" to the list.
+    ))
 
 ;; my-read-delimited-list : char? input-port? -> (listof syntax?)
 ;; like read-delimited-list of Common Lisp, but calls modern-read-syntax instead.

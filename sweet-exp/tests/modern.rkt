@@ -2,15 +2,16 @@
 
 (require rackunit)
 
-{3 + 5}
-'{3 + 5}
-{2 + {3 * 4}}
+(check-equal? {3} 3)
+(check-equal? {3 + 5} 8)
+(check-equal? '{3 + 5} '(+ 3 5))
+(check-equal? {2 + {3 * 4}} 14)
 
-cos(0)
-substring("Hello" 1 3)
-substring("Hello" 1 string-length("xyz"))
-*(5 4)
-not{#t and #f}
+(check-equal? cos(0) 1)
+(check-equal? substring("Hello" 1 3) "el")
+(check-equal? substring("Hello" 1 string-length("xyz")) "el")
+(check-equal? *(5 4) 20)
+(check-equal? not{#t and #f} #t)
 
 (define (f x)
   {x * x}
