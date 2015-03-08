@@ -272,13 +272,15 @@
          (define end-pos (port-pos port))
          (modern-process-tail port
            (datum->syntax stx (cons stx args)
-             (update-source-location stx #:span (- end-pos (syntax-position stx)))))]
+             (update-source-location stx #:span (- end-pos (syntax-position stx)))
+             (paren-shape orig-stx #\( )))]
         [(char=? c #\[ )  ; Implement f[x]
          (define args (modern-read2/no-process-tail port))
          (define end-pos (port-pos port))
          (modern-process-tail port
            (datum->syntax stx (cons stx args)
-             (update-source-location stx #:span (- end-pos (syntax-position stx)))))]
+             (update-source-location stx #:span (- end-pos (syntax-position stx)))
+             (paren-shape orig-stx #\[ )))]
         [(char=? c #\{ )  ; Implement f{x}
          (define arg (modern-read2/no-process-tail port))
          (define end-pos (port-pos port))
@@ -350,17 +352,17 @@
             (datum->syntax stx (list u stx)
                            (update-source-location u #:span (- end-pos pos)))])]
     [(char=? c #\( )
-     (cond [modern-backwards-compatible (underlying-read port)]
+     (cond [modern-backwards-compatible (paren-shape (underlying-read port) #\( )]
            [else
             (read-char port)
             (define lst (my-read-delimited-list #\) port))
             (define end-pos (port-pos port))
-            (make-stx lst ln col pos (- end-pos pos))])]
+            (paren-shape (make-stx lst ln col pos (- end-pos pos)) #\( )])]
     [(char=? c #\[ )
      (read-char port)
      (define lst (my-read-delimited-list #\] port))
      (define end-pos (port-pos port))
-     (make-stx lst ln col pos (- end-pos pos))]
+     (paren-shape (make-stx lst ln col pos (- end-pos pos)) #\[ )]
     [(char=? c #\{ )
      (read-char port)
      (define lst (my-read-delimited-list #\} port))
