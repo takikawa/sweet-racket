@@ -1,6 +1,8 @@
 Sweet expressions for Racket
 ============================
 
+[![Build Status](https://travis-ci.org/takikawa/sweet-racket.svg?branch=master)](https://travis-ci.org/takikawa/sweet-racket)
+
 This package provides a port of the [sweet
 expression](http://www.dwheeler.com/readable/) reader, originally written by
 David Wheeler, to [Racket](http://www.racket-lang.org).
