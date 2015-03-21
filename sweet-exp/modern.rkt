@@ -355,6 +355,41 @@
             (define end-pos (port-pos port))
             (datum->syntax stx (list u stx)
                            (update-source-location u #:span (- end-pos pos)))])]
+    [(char=? c #\#)
+     (define c2 (peek-char port 1))
+     (cond [(char=? c2 #\')
+            (read-char port)
+            (read-char port)
+            (define q (make-stx 'syntax ln col pos 2))
+            (define stx (modern-read2 port))
+            (define end-pos (port-pos port))
+            (datum->syntax stx (list q stx)
+                           (update-source-location q #:span (- end-pos pos)))]
+           [(char=? c2 #\`)
+            (read-char port)
+            (read-char port)
+            (define q (make-stx 'quasisyntax ln col pos 2))
+            (define stx (modern-read2 port))
+            (define end-pos (port-pos port))
+            (datum->syntax stx (list q stx)
+                           (update-source-location q #:span (- end-pos pos)))]
+           [(char=? c2 #\,)
+            (read-char port)
+            (read-char port)
+            (cond [(char=? #\@ (peek-char port))
+                   (read-char port)
+                   (define u (make-stx 'unsyntax-splicing ln col pos 3))
+                   (define stx (modern-read2 port))
+                   (define end-pos (port-pos port))
+                   (datum->syntax stx (list u stx)
+                                  (update-source-location u #:span (- end-pos pos)))]
+                  [else
+                   (define u (make-stx 'unsyntax ln col pos 2))
+                   (define stx (modern-read2 port))
+                   (define end-pos (port-pos port))
+                   (datum->syntax stx (list u stx)
+                                  (update-source-location u #:span (- end-pos pos)))])]
+           [else (underlying-read port)])]
     [(char=? c #\( )
      (cond [modern-backwards-compatible (paren-shape (underlying-read port) #\( )]
            [else
