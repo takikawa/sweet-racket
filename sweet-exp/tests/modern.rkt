@@ -30,3 +30,11 @@
   {x * x}
   #|this is a comment|#
   )
+
+(check-equal? (syntax->datum #'{1 + 2}) '(+ 1 2))
+(check-equal? (syntax->datum #`#,{1 + 2}) 3)
+(check-equal? (syntax->datum #`(map #,@'{'(1 2) + '(3 4)})) '(map + '(1 2) '(3 4)))
+(check-equal? (syntax->datum #'f(x)) '(f x))
+
+(check-equal? (map . {'(1 2) + '(3 4)}) '(4 6))
+
