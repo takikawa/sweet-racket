@@ -29,7 +29,8 @@
 
 (define treat-keywords-specially? #t)
 
-(define sugar-read-save read-syntax)
+(define (sugar-read-save)
+  (read-syntax (current-source-name) (current-input-port)))
 
 ;; -> void?
 ;; Consumes chars to end of line, WITHOUT consume the ending newline/EOF
