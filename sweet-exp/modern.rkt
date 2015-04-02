@@ -63,6 +63,7 @@
          syntax/readerr
          syntax/stx
          syntax/srcloc
+         syntax/strip-context
          "read-sig.rkt"
          "util.rkt")
 
@@ -308,7 +309,10 @@
     (set! source-name (object-name port)))
   (parameterize ([current-source-name source-name]
                  [current-input-port port])
-    (modern-read2 port)))
+    (define stx (modern-read2 port))
+    (if (and (syntax? stx) (not (dot? stx)))
+        (strip-context stx)
+        stx)))
 
 ;; modern-read2 : input-port? -> syntax?
 ;; Read using "modern Lisp notation".
