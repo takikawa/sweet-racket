@@ -18,6 +18,7 @@
          syntax/parse
          syntax/stx
          syntax/srcloc
+         syntax/strip-context
          syntax/readerr
          "read-sig.rkt"
          "util.rkt")
@@ -257,7 +258,10 @@
     (set! source-name (object-name port)))
   (parameterize ([current-source-name source-name]
                  [current-input-port port])
-    (sugar-start-expr)))
+    (define stx (sugar-start-expr))
+    (if (and (syntax? stx) (not (dot? stx)))
+        (strip-context stx)
+        stx)))
 
 
 (define (sugar-filter)

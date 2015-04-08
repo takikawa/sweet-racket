@@ -17,6 +17,7 @@
          "tests/typed.rkt"
          "tests/typed2.rkt"
          "tests/whitespace.rkt"
+         "tests/strip-context/use-m.rkt"
          "tests/sweet-test-run.rkt")
 
 (sweet-test "tests/sweet-testsuite")
