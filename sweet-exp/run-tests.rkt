@@ -3,6 +3,7 @@
 (require "tests/2htdp.rkt"
          "tests/335.rkt"
          "tests/bad-close-error.rkt"
+         "tests/case-lambda.rkt"
          "tests/define-syntax-rule.rkt"
          "tests/fib.rkt"
          "tests/hash.rkt"

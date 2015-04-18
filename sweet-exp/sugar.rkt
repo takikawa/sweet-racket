@@ -113,15 +113,9 @@
   (syntax-parse stx
     [((~literal group) e ...)
      (datum->syntax stx (stx-cdr stx) stx)]
-    [(() e ...)
-     (datum->syntax stx (stx-cdr stx) stx)]
-    [((q:quote-like) e e1 ...)
-     (datum->syntax stx (cons #'q (stx-cdr stx)) stx)]
     [((e ...) e1 ...)
      (datum->syntax stx (cons (clean (stx-car stx)) (stx-cdr stx)) stx)]
-    [(e ...) stx]
-    [e stx]
-    [() stx]))
+    [_ stx]))
 
 ;; indent -> syntax?
 ;; Reads all subblocks of a block
