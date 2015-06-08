@@ -113,6 +113,11 @@
   (syntax-parse stx
     [((~literal group) e ...)
      (datum->syntax stx (stx-cdr stx) stx)]
+    [(e1 ... (~and $ (~datum $)) e2 ...)
+     #:do [(define e2-lst (syntax->list #'(e2 ...)))]
+     #:with e2s (cond [(= (length e2-lst) 1) (car e2-lst)]
+                      [else (datum->syntax stx e2-lst #'$)])
+     (datum->syntax stx (syntax-e #'(e1 ... e2s)))]
     [((e ...) e1 ...)
      (datum->syntax stx (cons (clean (stx-car stx)) (stx-cdr stx)) stx)]
     [_ stx]))

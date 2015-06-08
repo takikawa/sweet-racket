@@ -10,6 +10,14 @@ substring "Hello"
   1
   string-length("xyz")
 
+check-equal?
+  substring "Hello" 1 $ string-length "xyz"
+  "el"
+
+check-equal?
+  substring "Hello" 1 $ string-length("xyz")
+  "el"
+
 if {7 < 5}
    {3 + 4}
    {5 * {2 + 3}}
