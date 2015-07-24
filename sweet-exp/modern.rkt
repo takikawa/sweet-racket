@@ -77,10 +77,6 @@
                                  ; if not, "f[...]" => [f ...].
 ; A few useful utilities:
 
-(define (ismember? item lyst)
-  ; Returns true if item is member of lyst, else false.
-  (pair? (member item lyst)))
-
 (define (debug-result marker value)
   ; For debugging - you can insert this without adding let, etc., because
   ; after printing it returns the original value.
@@ -110,17 +106,17 @@
   (define c (peek-char port))
   (define-values (ln col pos) (port-next-location port))
   (when (char? c)
-    (cond [(char=? c #\;)
+    (cond [(rt-char=? c #\;)
            (skip-line port)
            (skip-whitespace+comments port)]
-          [(char=? c #\#)
+          [(rt-char=? c #\#)
            (define c2 (peek-char port 1))
            (when (char? c2)
-             (cond [(char=? c2 #\;)
+             (cond [(rt-char=? c2 #\;)
                     (read-char port) (read-char port)
                     (modern-read2 port)
                     (skip-whitespace+comments port)]
-                   [(char=? c2 #\|)
+                   [(rt-char=? c2 #\|)
                     (read-char port) (read-char port)
                     (unless (regexp-match? (regexp (regexp-quote "|#")) port)
                       (raise-read-eof-error "unclosed block comment"
@@ -145,7 +141,7 @@
   (let ([c2 (peek-char port 1)]) ; c2 is the char after the period
     (cond
       [(eof-object? c2) (read-char port) dot] ; period eof; return period.
-      [(ismember? c2 modern-delimiters) (read-char port) dot]
+      [(rt-char-member? c2 modern-delimiters) (read-char port) dot]
       [else
        (old-read-syntax (current-source-name) port)])))
 
@@ -161,7 +157,7 @@
   (let ([c (peek-char port)])
     (cond
       [(eof-object? c) c]
-      [(char=? c #\.) (process-period port)]
+      [(rt-char=? c #\.) (process-period port)]
       [else
        (old-read-syntax (current-source-name) port)])))
 
@@ -238,10 +234,10 @@
       [(eof-object? c)
        (raise-read-eof-error "EOF in middle of list" (current-source-name) ln col pos 0)
        c]
-      [(char=? c stop-char)
+      [(rt-char=? c stop-char)
        (read-char port)
        subs]
-      [(ismember? c '(#\) #\] #\}))
+      [(rt-char-member? c '(#\) #\] #\}))
        (raise-read-error "Bad closing character" (current-source-name) ln col pos 1)
        c]
       [else
@@ -272,21 +268,21 @@
   (cond [(not (or (symbol? prefix) (pair? prefix)))
          stx]  ; Prefixes MUST be symbol or cons; return original value.
         [(eof-object? c) stx]
-        [(char=? c #\( ) ; ).  Implement f(x).
+        [(rt-char=? c #\( ) ; ).  Implement f(x).
          (define args (modern-read2/no-process-tail port))
          (define end-pos (port-pos port))
          (modern-process-tail port
            (datum->syntax stx (cons stx args)
              (update-source-location stx #:span (- end-pos (syntax-position stx)))
              (paren-shape orig-stx #\( )))]
-        [(char=? c #\[ )  ; Implement f[x]
+        [(rt-char=? c #\[ )  ; Implement f[x]
          (define args (modern-read2/no-process-tail port))
          (define end-pos (port-pos port))
          (modern-process-tail port
            (datum->syntax stx (cons stx args)
              (update-source-location stx #:span (- end-pos (syntax-position stx)))
              (paren-shape orig-stx #\[ )))]
-        [(char=? c #\{ )  ; Implement f{x}
+        [(rt-char=? c #\{ )  ; Implement f{x}
          (define arg (modern-read2/no-process-tail port))
          (define end-pos (port-pos port))
          (modern-process-tail port
@@ -330,23 +326,23 @@
     ; We need to directly implement abbreviations ', etc., so that
     ; we retain control over the reading process.
     [(eof-object? c) eof]
-    [(char=? c #\')
+    [(rt-char=? c #\')
      (read-char port)
      (define q (make-stx 'quote ln col pos 1))
      (define stx (modern-read2 port))
      (define end-pos (port-pos port))
      (datum->syntax stx (list q stx)
                     (update-source-location q #:span (- end-pos pos)))]
-    [(char=? c #\`)
+    [(rt-char=? c #\`)
      (read-char port)
      (define q (make-stx 'quasiquote ln col pos 1))
      (define stx (modern-read2 port))
      (define end-pos (port-pos port))
      (datum->syntax stx (list q stx)
                     (update-source-location q #:span (- end-pos pos)))]
-    [(char=? c #\,)
+    [(rt-char=? c #\,)
      (read-char port)
-     (cond [(char=? #\@ (peek-char port))
+     (cond [(char=? (peek-char port) #\@)
             (read-char port)
             (define u (make-stx 'unquote-splicing ln col pos 2))
             (define stx (modern-read2 port))
@@ -359,9 +355,11 @@
             (define end-pos (port-pos port))
             (datum->syntax stx (list u stx)
                            (update-source-location u #:span (- end-pos pos)))])]
-    [(char=? c #\#)
+    [(rt-char=? c #\#)
      (define c2 (peek-char port 1))
-     (cond [(char=? c2 #\')
+     (cond [(eof-object? c2)
+            (raise-read-eof-error "expected more characters after `#`" ln col pos 1)]
+           [(rt-char=? c2 #\')
             (read-char port)
             (read-char port)
             (define q (make-stx 'syntax ln col pos 2))
@@ -369,7 +367,7 @@
             (define end-pos (port-pos port))
             (datum->syntax stx (list q stx)
                            (update-source-location q #:span (- end-pos pos)))]
-           [(char=? c2 #\`)
+           [(rt-char=? c2 #\`)
             (read-char port)
             (read-char port)
             (define q (make-stx 'quasisyntax ln col pos 2))
@@ -377,10 +375,10 @@
             (define end-pos (port-pos port))
             (datum->syntax stx (list q stx)
                            (update-source-location q #:span (- end-pos pos)))]
-           [(char=? c2 #\,)
+           [(rt-char=? c2 #\,)
             (read-char port)
             (read-char port)
-            (cond [(char=? #\@ (peek-char port))
+            (cond [(char=? (peek-char port) #\@)
                    (read-char port)
                    (define u (make-stx 'unsyntax-splicing ln col pos 3))
                    (define stx (modern-read2 port))
@@ -394,25 +392,25 @@
                    (datum->syntax stx (list u stx)
                                   (update-source-location u #:span (- end-pos pos)))])]
            [else (underlying-read port)])]
-    [(char=? c #\( )
+    [(rt-char=? c #\( )
      (cond [modern-backwards-compatible (paren-shape (underlying-read port) #\( )]
            [else
             (read-char port)
             (define lst (my-read-delimited-list #\) port))
             (define end-pos (port-pos port))
             (paren-shape (make-stx lst ln col pos (- end-pos pos)) #\( )])]
-    [(char=? c #\[ )
+    [(rt-char=? c #\[ )
      (read-char port)
      (define lst (my-read-delimited-list #\] port))
      (define end-pos (port-pos port))
      (paren-shape (make-stx lst ln col pos (- end-pos pos)) #\[ )]
-    [(char=? c #\{ )
+    [(rt-char=? c #\{ )
      (read-char port)
      (define lst (my-read-delimited-list #\} port))
      (define end-pos (port-pos port))
      (process-curly
       (make-stx lst ln col pos (- end-pos pos)))]
-    [(char=? c #\; )  ; Handle ";" directly, so we don't lose control.
+    [(rt-char=? c #\; )  ; Handle ";" directly, so we don't lose control.
      (skip-line port)
      (modern-read2 port)]
     [else (define result (underlying-read port))

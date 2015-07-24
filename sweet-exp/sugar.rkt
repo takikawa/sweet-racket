@@ -56,13 +56,14 @@
 ;; read in a single datum
 (define (readitem level)
   (define char (peek-char))
-  (cond [(eqv? char #\`)
+  (cond [(eof-object? char) char]
+        [(rt-char=? char #\`)
          (read-char)
          (readquote level 'quasiquote)]
-        [(eqv? char #\')
+        [(rt-char=? char #\')
          (read-char)
          (readquote level 'quote)]
-        [(eqv? char #\,)
+        [(rt-char=? char #\,)
          (read-char)
          (cond
            [(eqv? (peek-char) #\@)
@@ -91,14 +92,15 @@
 ;; read the indentation of the next line
 (define (indentationlevel)
   (define indent (accumulate-hspace))
-  (cond [(eqv? (peek-char) #\;)
+  (define c (peek-char))
+  (cond [(eof-object? c) ""]
+        [(rt-char=? c #\;)
          (consume-to-eol) ; ALWAYS ignore comment-only lines.
          (when (eqv? (peek-char) #\newline) (read-char))
          (indentationlevel)]
         ; If ONLY whitespace on line, treat as "", because there's no way
         ; to (visually) tell the difference (preventing hard-to-find errors):
-        [(eof-object? (peek-char)) ""]
-        [(eqv? (peek-char) #\newline) ""]
+        [(eqv? c #\newline) ""]
         [else (list->string indent)]))
 
 ;; stx? -> stx?
@@ -164,7 +166,7 @@
   (cond
     [(eof-object? char)
      (cons -1 char)]
-    [(eqv? char #\;)
+    [(rt-char=? char #\;)
      (consume-to-eol)
      (readblock level)]
     [(eqv? char #\newline)
@@ -233,7 +235,7 @@
        [else stx])]))
 
 ;; predicate for comment characters
-(define (char-comment? c) (eqv? c #\;))
+(define (char-comment? c) (and (char? c) (rt-char=? c #\;)))
 
 ;; read a commented line
 (define (read-comment)
