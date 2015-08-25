@@ -1,10 +1,13 @@
 #lang racket/base
 
+;; This module provides an indenter for the sweet-exp language.
+;; Within a normal s-expression, it uses normal s-expression indentation rules.
+;; Otherwise, it leaves code indented the way it was, and indents blank lines
+;; and comments to match the indentation of the next expression.
+
 (provide indent)
 
-(require racket/class
-         framework
-         )
+(require racket/class)
 
 ;; indent :
 ;; (is-a?/c racket:text<%>) exact-nonnegative-integer? -> (or/c #f exact-nonnegative-integer?)
