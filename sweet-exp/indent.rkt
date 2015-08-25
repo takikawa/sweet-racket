@@ -15,9 +15,11 @@
 ;; at the beginning of the line or #f. If #f is returned, DrRacket uses the standard s-expression
 ;; indentation rules.
 (define (indent text pos)
-  (define next-sexp-indentation
-    (get-next-sexp-indentation text pos))
-  next-sexp-indentation)
+  (cond
+    [(within-sexp-not-first-line? text pos)
+     #f] ; use normal racket s-expression indentation
+    [else
+     (get-next-sexp-indentation text pos)]))
 
 (define (get-start-of-line text pos)
   (and pos (send text get-start-of-line pos)))
@@ -44,4 +46,20 @@
      (- next-sexp-start next-sexp-line-start)]
     [else
      0]))
+
+(define (line=? text pos1 pos2)
+  (and pos1 pos2
+       (= (get-start-of-line text pos1)
+          (get-start-of-line text pos2))))
+
+(define (find-up-sexp text pos)
+  (and pos (send text find-up-sexp pos)))
+
+(define (within-sexp-not-first-line? text pos)
+  (define up-sexp
+    (find-up-sexp text (get-start-of-line text pos)))
+  (cond [(not up-sexp) #f]
+        [(line=? text up-sexp pos)
+         (within-sexp-not-first-line? text up-sexp)]
+        [else #t]))
 
