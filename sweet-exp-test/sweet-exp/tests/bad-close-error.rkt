@@ -1,7 +1,7 @@
 #lang racket/base
 
 (require rackunit
-         (submod "../main.rkt" link-reader))
+         (submod sweet-exp link-reader))
 
 (define-values (sweet-read sweet-read-syntax)
   (sweet-link read read-syntax))

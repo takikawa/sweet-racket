@@ -1,6 +1,7 @@
 #lang racket
 
-(require "tests/2htdp.rkt"
+(require racket/runtime-path
+         "tests/2htdp.rkt"
          "tests/335.rkt"
          "tests/bad-close-error.rkt"
          "tests/case-lambda.rkt"
@@ -21,4 +22,6 @@
          "tests/strip-context/use-m.rkt"
          "tests/sweet-test-run.rkt")
 
-(sweet-test "tests/sweet-testsuite")
+(define-runtime-path sweet-testsuite "tests/sweet-testsuite")
+
+(sweet-test sweet-testsuite)

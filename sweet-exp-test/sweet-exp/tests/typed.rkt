@@ -1,4 +1,4 @@
-#lang reader (submod "../main.rkt" reader) typed/racket
+#lang sweet-exp typed/racket
 
 {x : Number}
 define x 5
