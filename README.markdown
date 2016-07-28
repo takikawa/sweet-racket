@@ -15,7 +15,7 @@ To use the package, you have several options.
 
 * You can also use Planet 2 package management manually:
   - `git clone git://github.com/takikawa/sweet-racket.git`
-  - `raco pkg install sweet-racket/`
+  - `raco pkg install sweet-racket/sweet-exp-lib/`
 
 * With Racket 5.3.1 and earlier, you can use the
   [Planet package](http://planet.racket-lang.org/display.ss?package=sweet.plt&owner=asumu).
