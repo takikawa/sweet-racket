@@ -1,4 +1,4 @@
-#lang reader (submod "../main.rkt" reader) lazy
+#lang sweet-exp lazy
 
 define fibs
   cons 0 cons(1 map(+ fibs cdr(fibs)))

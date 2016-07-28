@@ -2,8 +2,8 @@
 
 ;; Test driver ported from Guile to Racket
 
-(require "../read-sig.rkt"
-         "../sweet.rkt")
+(require sweet-exp/read-sig
+         sweet-exp/sweet)
 
 (provide sweet-test)
 

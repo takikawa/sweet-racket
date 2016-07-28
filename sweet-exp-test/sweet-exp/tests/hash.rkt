@@ -1,4 +1,4 @@
-#lang reader (submod "../main.rkt" reader) racket
+#lang sweet-exp racket
 
 #hash()
 #hasheq()
