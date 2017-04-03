@@ -113,7 +113,7 @@
                   (~literal unquote))))
 
   (syntax-parse stx
-    [((~literal group) e ...)
+    [((~or (~literal group) (~literal \\)) e ...)
      (clean (datum->syntax stx (stx-cdr stx) stx))]
     [(e1 ... (~and $ (~datum $)) e2 ...)
      #:do [(define e2-lst (syntax->list #'(e2 ...)))]

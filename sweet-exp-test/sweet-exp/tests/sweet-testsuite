@@ -208,13 +208,24 @@ a b c
 group
   hello
 
+(hello)
+\\
+  hello
+
 ((hello there))
 group
+  hello there
+
+((hello there))
+\\
   hello there
 
 
 (hi group)
 hi group
+
+(hi \\)
+hi \\
 
 (a (b c) (d e))
 a
@@ -245,9 +256,20 @@ x
   group
      y
 
+(x (y))
+x
+  \\
+     y
+
 (let ((x 1) (y 2)))
 let
   group
+    x 1
+    y 2
+
+(let ((x 1) (y 2)))
+let
+  \\
     x 1
     y 2
 
@@ -280,6 +302,11 @@ cond
 `(,@x)
 `group
   ,@x
+
+`(,@x)
+`
+  \\
+    ,@x
 
 (a . b)
 a . b

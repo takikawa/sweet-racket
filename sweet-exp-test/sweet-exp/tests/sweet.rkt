@@ -41,6 +41,17 @@ define (g a . args) list(a args)
 
 check-equal? (g 1 2 3) (list 1 (list 2 3))
 
+;; Check \\ grouping behavior
+let  
+  \\  
+    a 1
+      ;; This is a comment
+      ;; This, too, is a comment
+    b 2      
+  check-equal? 
+    * a b
+    2
+
 let
   group
     | | 5
