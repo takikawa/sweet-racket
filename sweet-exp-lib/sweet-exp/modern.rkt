@@ -347,12 +347,12 @@
             (read-char port)
             (define lst (my-read-delimited-list #\) port))
             (define end-pos (port-pos port))
-            (paren-shape (make-stx lst ln col pos (- end-pos pos)) #\( )])]
+            (make-stx lst ln col pos (- end-pos pos))])]
     [(rt-char=? c #\[ )
      (read-char port)
      (define lst (my-read-delimited-list #\] port))
      (define end-pos (port-pos port))
-     (paren-shape (make-stx lst ln col pos (- end-pos pos)) #\[ )]
+     (make-stx lst ln col pos (- end-pos pos))]
     [(rt-char=? c #\{ )
      (read-char port)
      (define lst (my-read-delimited-list #\} port))
