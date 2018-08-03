@@ -19,7 +19,9 @@
     orig-stx))
 
 (define (paren-shape stx shape)
-  (syntax-property stx 'paren-shape shape))
+  (define val
+    (cond [(char=? shape #\( ) #false] [else shape]))
+  (syntax-property stx 'paren-shape val))
 
 (define (port-pos in)
   (define-values (_1 _2 pos) (port-next-location in))

@@ -6,7 +6,7 @@ require rackunit
 
 define-syntax get-paren-shape
   lambda (stx)
-    #`#,(syntax-property stx 'paren-shape)
+    #`#,(or (syntax-property stx 'paren-shape) #\( )
 
 check-equal? (get-paren-shape) #\(
 check-equal? [get-paren-shape] #\[
