@@ -115,6 +115,12 @@
   (syntax-parse stx
     [((~or (~literal group) (~literal \\)) e ...)
      (clean (datum->syntax stx (stx-cdr stx) stx))]
+    [(before ... (e1 (~literal \\) e2) after ...)
+     (clean (datum->syntax stx (syntax-e #'(before ... e1 e2 after ...)) stx))]
+    [(before ... (e1 ... (~literal \\) e2) after ...)
+     (clean (datum->syntax stx (syntax-e #'(before ... (e1 ...) e2 after ...)) stx))]
+    [(before ... (e1 ... (~literal \\) e2 ...) after ...)
+     (clean (datum->syntax stx (syntax-e #'(before ... (e1 ...) (e2 ...) after ...)) stx))]
     [(e1 ... (~and $ (~datum $)) e2 ...)
      #:do [(define e2-lst (syntax->list #'(e2 ...)))]
      #:with e2s (cond [(= (length e2-lst) 1) (car e2-lst)]
@@ -184,7 +190,7 @@
      (match-define (cons new-level rest) (readblock level))
      (define end-pos (port-pos (current-input-port)))
      (cond [(eof-object? first) (cons new-level first)]
-           [(eof-object? rest) (cons new-level first)]
+           [(eof-object? rest) (cons new-level (make-stx (list first) ln col pos (- end-pos pos)))]
            [(dot? first)
             (match (syntax->list rest)
               [(list) (cons new-level first)]
