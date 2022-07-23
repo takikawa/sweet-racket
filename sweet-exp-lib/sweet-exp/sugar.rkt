@@ -161,6 +161,7 @@
      (cons lvl (datum->syntax #f lst #f orig-stx))]))
 
 ;; Read one block of input
+;; Produce a cons pair of indentation-level and syntax
 (define (readblock level)
   (define char (peek-char))
   (cond

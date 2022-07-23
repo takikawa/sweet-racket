@@ -60,3 +60,7 @@ let
 
 (check-equal? '((a 1) (b 2) (c 3)) (list (list `a 1) (list 'b 2) (list 'c 3)))
 
+check-equal?
+  list 1 2 3
+    list 4 5
+  '(1 2 3 (4 5))
