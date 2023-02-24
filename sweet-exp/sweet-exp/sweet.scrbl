@@ -1,7 +1,11 @@
 #lang scribble/doc
 
 @(require scribble/manual
-          (for-label racket/base sweet-exp))
+          scribble/example
+          (for-label racket/base
+                     racket/contract/base
+                     sweet-exp
+                     sweet-exp/reader))
 
 @title{Sweet: an alternative to s-expressions}
 @author[(author+email "Asumu Takikawa" "asumu@racket-lang.org")]
@@ -53,3 +57,19 @@ Or alternatively:
 
 Known issues: quasi-quotation combined with grouping does not
 behave according to the specification.
+
+@section{Sweet reading functions}
+
+@defmodule[sweet-exp/reader]
+
+@deftogether[[
+  @defproc[(sweet-read [in input-port? (current-input-port)]) any]
+  @defproc[(sweet-read-syntax [source-name any/c (object-name in)]
+                              [in input-port? (current-input-port)])
+           (or/c syntax? eof-object?)]]]{
+These procedures implement the @racketmodname[sweet-exp] reader.
+
+@examples[
+  (require sweet-exp/reader)
+  (sweet-read (open-input-string "printf(\"Hello\")"))
+]}
